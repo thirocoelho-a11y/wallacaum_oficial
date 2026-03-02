@@ -737,7 +737,7 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       if (p.hitstop > 0) { p.hitstop--; setFrameTick(f); animId = requestAnimationFrame(loop); return; }
 
       updateIdleEating(p, k, particles, texts, f);
-      updatePlayerMovement(p, k, particles);
+      updatePlayerMovement(p, k);
       updatePlayerJump(p, k, particles);
       cameraRef.current += (clamp(p.x - BASE_W / 2, 0, WORLD_W - BASE_W) - cameraRef.current) * 0.07;
       updatePlayerAttacks(p, k, enemies, screenShakeRef);
@@ -808,3 +808,4 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
   };
 
 }
+
