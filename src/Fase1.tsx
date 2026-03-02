@@ -10,10 +10,10 @@ import {
 export interface Fase1Props {
   initialScore: number; initialHp: number; muted: boolean;
   onToggleMute: () => void; onComplete: (score: number, hp: number) => void;
-  onGameOver: (score: number) => void; onRestart: () => void;
+  onGameOver: (score: number) => void;
 }
 
-export default function Fase2({ initialScore, initialHp, muted, onToggleMute, onVictory, onGameOver }: Fase2Props) {
+export default function Fase1({ initialScore, initialHp, muted, onToggleMute, onComplete, onGameOver }: Fase1Props) {
   const { p, dav, enemies, food, texts, particles, keysRef, frame, cam, shake, score, bossEnemy } = useGameEngine({
     initialScore, initialHp,
     bossThreshold: 1000,
@@ -43,10 +43,23 @@ export default function Fase2({ initialScore, initialHp, muted, onToggleMute, on
         {entities.map(ent => {
           const sx = ent.data.x - cam;
           if (sx < -120 || sx > BASE_W + 120) return null;
-          if (ent.type === 'player') return <div key="player" style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - SPRITE_PLAYER_W / 2}px, ${ent.data.y - SPRITE_PLAYER_OFFSET_Y - (ent.data.z || 0)}px, 0)`, zIndex: Math.floor(ent.data.y) }}><PixelWallacaum direction={ent.data.dir} isWalking={isMoving} isAttacking={ent.data.attacking} isBuffa={ent.data.buffing} isHurt={ent.data.hurt} isEating={ent.data.eating} jumpZ={ent.data.z || 0} landSquash={ent.data.landSquash} combo={ent.data.combo} /></div>;
-          if (ent.type === 'davisaum') return <div key="davisaum" style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - 45}px, ${ent.data.y - SPRITE_DAVIS_OFFSET_Y}px, 0)`, zIndex: Math.floor(ent.data.y) }}><PixelDavisaum direction={ent.data.dir} isWalking={ent.data.isWalking} isThrowing={ent.data.isThrowing} isScared={ent.data.isScared} frame={frame} /></div>;
-          if (ent.type === 'enemy') return <div key={ent.key} style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - 45}px, ${ent.data.y - SPRITE_ENEMY_OFFSET_Y}px, 0)`, zIndex: Math.floor(ent.data.y) }}><PixelAgent type={ent.data.type} direction={ent.data.dir} isWalking={ent.data.walking} punchTimer={ent.data.punchTimer} stateTimer={ent.data.stateTimer} frame={frame} isHurt={ent.data.hurt} hp={ent.data.hp} maxHp={ent.data.maxHp} charging={ent.data.charging} /></div>;
-          if (ent.type === 'food') return <div key={ent.key} style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - FOOD_SIZE / 2}px, ${ent.data.y - FOOD_SIZE - 8}px, 0)`, zIndex: Math.floor(ent.data.y) - 1 }}><FoodItemComp type={ent.data.type} landed={ent.data.landed} /></div>;
+          
+          if (ent.type === 'player') {
+            const pData = ent.data as any;
+            return <div key="player" style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - SPRITE_PLAYER_W / 2}px, ${pData.y - SPRITE_PLAYER_OFFSET_Y - (pData.z || 0)}px, 0)`, zIndex: Math.floor(pData.y) }}><PixelWallacaum direction={pData.dir} isWalking={isMoving} isAttacking={pData.attacking} isBuffa={pData.buffing} isHurt={pData.hurt} isEating={pData.eating} jumpZ={pData.z || 0} landSquash={pData.landSquash} combo={pData.combo} /></div>;
+          }
+          if (ent.type === 'davisaum') {
+            const dData = ent.data as any;
+            return <div key="davisaum" style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - 45}px, ${dData.y - SPRITE_DAVIS_OFFSET_Y}px, 0)`, zIndex: Math.floor(dData.y) }}><PixelDavisaum direction={dData.dir} isWalking={dData.isWalking} isThrowing={dData.isThrowing} isScared={dData.isScared} frame={frame} /></div>;
+          }
+          if (ent.type === 'enemy') {
+            const eData = ent.data as any;
+            return <div key={ent.key} style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - 45}px, ${eData.y - SPRITE_ENEMY_OFFSET_Y}px, 0)`, zIndex: Math.floor(eData.y) }}><PixelAgent type={eData.type} direction={eData.dir} isWalking={eData.walking} punchTimer={eData.punchTimer} stateTimer={eData.stateTimer} frame={frame} isHurt={eData.hurt} hp={eData.hp} maxHp={eData.maxHp} charging={eData.charging} /></div>;
+          }
+          if (ent.type === 'food') {
+            const fData = ent.data as any;
+            return <div key={ent.key} style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - FOOD_SIZE / 2}px, ${fData.y - FOOD_SIZE - 8}px, 0)`, zIndex: Math.floor(fData.y) - 1 }}><FoodItemComp type={fData.type} landed={fData.landed} /></div>;
+          }
           return null;
         })}
         <ParticleRenderer particles={particles} cam={cam} />
@@ -62,5 +75,4 @@ export default function Fase2({ initialScore, initialHp, muted, onToggleMute, on
       <TouchActions keysRef={keysRef} />
     </>
   );
-
 }
