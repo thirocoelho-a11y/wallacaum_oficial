@@ -96,7 +96,19 @@ export interface Enemy {
 }
 
 export interface FoodItem { id: string; x: number; y: number; type: 'burger' | 'fries' | 'manual' | 'compass'; t: number; vy: number; landed: boolean; }
-export interface Particle { id: string; x: number; y: number; vx: number; vy: number; life: number; maxLife: number; color: string; size: number; type: 'dust' | 'hit' | 'spark' | 'ring'; }
+export interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;      // Tempo de vida restante (em segundos)
+  startLife: number; // Tempo de vida inicial total
+  color: string;
+  size: number;
+  startSize: number; // Tamanho inicial
+  type: 'spark' | 'smoke'; // Diferencia o comportamento
+}
 export interface FloatingTextData { id: string; text: string; x: number; y: number; color: string; size: number; t: number; }
 export interface Davisaum { x: number; y: number; dir: 'left' | 'right'; throwTimer: number; isWalking: boolean; isThrowing: boolean; isScared: boolean; }
 
@@ -316,19 +328,50 @@ export function FloatingText({ text, x, y, color, size = 16 }: { text: string; x
 
 export function ParticleRenderer({ particles, cam }: { particles: Particle[]; cam: number }) {
   return (<>{particles.map(p => { 
-    const alpha = p.life / p.maxLife; 
+    // Usamos p.maxLife ou p.startLife (o que estiver na sua interface) para o cálculo de alpha
+    const alpha = p.life / (p.maxLife || (p as any).startLife || 1); 
     const sx = p.x - cam; 
-    if (sx < -20 || sx > BASE_W + 20) return null; 
     
+    // Culling: não renderiza o que está fora da tela (margem de 40px para fumaça que cresce)
+    if (sx < -40 || sx > BASE_W + 40) return null; 
+    
+    // 1. Efeito de Anel (Explosões/Boss)
     if (p.type === 'ring') { 
       const sc = 1 + (1 - alpha) * 2; 
       return <div key={p.id} style={{ position: 'absolute', left: 0, top: 0, transform: `translate3d(${sx - 20}px, ${p.y - 20}px, 0) scale(${sc})`, width: 40, height: 40, borderRadius: '50%', border: `3px solid ${p.color}`, opacity: alpha * 0.6, pointerEvents: 'none', zIndex: 9998 }} />; 
     } 
+
+    // 2. Efeito de Fumaça (Bufa Celeste)
+    if (p.type === 'smoke' as any) {
+      return (
+        <div key={p.id} style={{ 
+          position: 'absolute', left: 0, top: 0, 
+          transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0)`, 
+          width: p.size, height: p.size, 
+          background: p.color, 
+          borderRadius: '2px', // Visual de fumaça pixelada
+          opacity: alpha, 
+          boxShadow: `0 0 ${p.size}px ${p.color}`, // Brilho etéreo verde/azul
+          pointerEvents: 'none', zIndex: 9997 
+        }} />
+      );
+    }
     
-    return <div key={p.id} style={{ position: 'absolute', left: 0, top: 0, transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0) ${p.type === 'spark' ? `rotate(${p.vx * 20}deg)` : ''}`, width: p.size, height: p.size, background: p.color, borderRadius: p.type === 'spark' ? '1px' : '50%', opacity: alpha, boxShadow: `0 0 ${p.size}px ${p.color}`, pointerEvents: 'none', zIndex: 9998 }} />; 
+    // 3. Efeito Padrão (Spark / Faíscas)
+    return (
+      <div key={p.id} style={{ 
+        position: 'absolute', left: 0, top: 0, 
+        transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0) ${p.type === 'spark' ? `rotate(${p.vx * 20}deg)` : ''}`, 
+        width: p.size, height: p.size, 
+        background: p.color, 
+        borderRadius: p.type === 'spark' ? '1px' : '50%', 
+        opacity: alpha, 
+        boxShadow: `0 0 ${p.size}px ${p.color}`, 
+        pointerEvents: 'none', zIndex: 9998 
+      }} />
+    ); 
   })}</>);
 }
-
 // ─────────────────────────────────────────────────────
 //  TOUCH CONTROLS
 // ─────────────────────────────────────────────────────
@@ -691,8 +734,10 @@ export function updateFurioAI(e: Enemy, p: Player, _dav: Davisaum, particles: Pa
 }
 
 // ─────────────────────────────────────────────────────
-//  MOTOR CENTRAL (useGameEngine)
-// ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+//  MOTOR CENTRAL (useGameEngine) - Versão Bufa Celeste
+// ═══════════════════════════════════════════════════════
+
 export interface EnginePhaseConfig {
   initialScore: number; initialHp: number; bossThreshold: number; spawnIntervalMs: number;
   bossType: EnemyType; bossHp: number; bossAnnounce: string; bossAnnounceColor: string; bossDeathColor: string; bossDeathParticles: string;
@@ -701,7 +746,11 @@ export interface EnginePhaseConfig {
 }
 
 export function useGameEngine(cfg: EnginePhaseConfig) {
-  const playerRef = useRef<Player>({ ...DEFAULT_PLAYER, hp: Math.min(MAX_HP, cfg.initialHp > 0 ? cfg.initialHp + (cfg.bossType === 'furio' ? 30 : 0) : MAX_HP), invincible: cfg.bossType === 'furio' ? 60 : 0 });
+  const playerRef = useRef<Player>({ 
+    ...DEFAULT_PLAYER, 
+    hp: Math.min(MAX_HP, cfg.initialHp > 0 ? cfg.initialHp + (cfg.bossType === 'furio' ? 30 : 0) : MAX_HP), 
+    invincible: cfg.bossType === 'furio' ? 60 : 0 
+  });
   const enemiesRef = useRef<Enemy[]>([]);
   const foodRef = useRef<FoodItem[]>([]);
   const textsRef = useRef<FloatingTextData[]>([]);
@@ -736,13 +785,22 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       
       if (p.hitstop > 0) { p.hitstop--; setFrameTick(f); animId = requestAnimationFrame(loop); return; }
 
+      // 1. ATUALIZAÇÕES DO JOGADOR
       updateIdleEating(p, k, particles, texts, f);
       updatePlayerMovement(p, k);
       updatePlayerJump(p, k, particles);
+      
+      // ── LOGICA VISUAL: BUFA CELESTE (Fumaça Verde e Azul) ──
+      if (p.buffing && f % 2 === 0) {
+        // Chama a função de fumaça que criamos
+        spawnCelestialSmoke(particles, p.x, p.y - 10);
+      }
+
       cameraRef.current += (clamp(p.x - BASE_W / 2, 0, WORLD_W - BASE_W) - cameraRef.current) * 0.07;
       updatePlayerAttacks(p, k, enemies, screenShakeRef);
       updateDavisAI(dav, p, enemies, foodRef.current, f);
 
+      // 2. LOGICA DE INIMIGOS
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         if (e.hurtTimer > 0) {
@@ -755,7 +813,7 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
 
         let stateResult: 'dead' | 'alive' = 'alive';
         if (e.type === 'suka') stateResult = updateSukaAI(e, p, dav, particles, texts, f, screenShakeRef);
-        else if (e.type === 'furio') stateResult = updateFurioAI(e, p, dav, particles, texts, f, screenShakeRef);
+        else if (e.type === 'furio') stateResult = updateFurioAI(e, p, _dav as any, particles, texts, f, screenShakeRef);
         else stateResult = updateBasicEnemyAI(e, p, particles, texts, f);
 
         if (stateResult === 'dead') { setDead(true); cfg.onGameOver(scoreRef.current); return; }
@@ -776,13 +834,14 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
         }
       }
 
+      // 3. ITENS E SPAWN
       updateItems(foodRef.current, p, texts, particles, f);
 
       spawnTimerRef.current++;
       const si = cfg.spawnIntervalMs / 16.67;
       if (scoreRef.current - cfg.initialScore >= cfg.bossThreshold && !bossSpawned.current) {
         bossSpawned.current = true;
-        enemies.push({ id: uid(), type: cfg.bossType, x: p.x + 400, y: clamp(p.y, FLOOR_MIN, FLOOR_MAX), z: 0, hp: cfg.bossHp, maxHp: cfg.bossHp, dir: 'left', walking: true, hurt: false, hurtTimer: 0, kbx: 0, kby: 0, atkCd: 60, stateTimer: 0, punchTimer: 0, hitThisSwing: false, charging: false, chargeDir: 0 });
+        enemies.push({ id: uid(), type: cfg.bossType, x: p.x + 400, y: clamp(p.y, FLOOR_MIN, FLOOR_MAX), z: 0, hp: cfg.bossHp, maxHp: cfg.bossHp, dir: 'left', walking: true, hurt: false, hurtTimer: 0, kbx: 0, kby: 0, atkCd: 60, stateTimer: 0, punchTimer: 0, hitThisSwing: false, charging: false, chargeDir: 0 } as any);
         screenShakeRef.current = 20;
         texts.push({ id: uid(), text: cfg.bossAnnounce, x: p.x + 200, y: p.y - 100, color: cfg.bossAnnounceColor, size: 18, t: f });
       } else if (spawnTimerRef.current > si && enemies.length < MAX_ENEMIES && !bossSpawned.current) {
@@ -790,9 +849,11 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
         const side = Math.random() < 0.5 ? p.x - BASE_W * 0.6 : p.x + BASE_W * 0.6;
         const tp = cfg.getNormalEnemyType();
         const ehp = cfg.getNormalEnemyHp(tp);
-        enemies.push({ id: uid(), type: tp, x: clamp(side, 10, WORLD_W - 10), y: rng(FLOOR_MIN + 10, FLOOR_MAX - 10), z: 0, hp: ehp, maxHp: ehp, dir: side < p.x ? 'right' : 'left', walking: true, hurt: false, hurtTimer: 0, kbx: 0, kby: 0, atkCd: 30, stateTimer: 0, punchTimer: 0, hitThisSwing: false });
+        enemies.push({ id: uid(), type: tp, x: clamp(side, 10, WORLD_W - 10), y: rng(FLOOR_MIN + 10, FLOOR_MAX - 10), z: 0, hp: ehp, maxHp: ehp, dir: side < p.x ? 'right' : 'left', walking: true, hurt: false, hurtTimer: 0, kbx: 0, kby: 0, atkCd: 30, stateTimer: 0, punchTimer: 0, hitThisSwing: false } as any);
       }
 
+      // 4. FINALIZAÇÃO DO FRAME
+      if (screenShakeRef.current > 0) screenShakeRef.current *= 0.9;
       updateParticlesAndTexts(particles, texts, f);
       setFrameTick(f);
       animId = requestAnimationFrame(loop);
@@ -806,6 +867,6 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
     texts: textsRef.current, particles: particlesRef.current, keysRef, frame: frameTick,
     cam: cameraRef.current, shake: screenShakeRef.current, score, bossEnemy: enemiesRef.current.find(e => isBossType(e.type))
   };
-
 }
+
 
