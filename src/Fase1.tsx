@@ -13,7 +13,7 @@ export interface Fase1Props {
   onGameOver: (score: number) => void; onRestart: () => void;
 }
 
-export default function Fase1({ initialScore, initialHp, muted, onToggleMute, onComplete, onGameOver, onRestart }: Fase1Props) {
+export default function Fase2({ initialScore, initialHp, muted, onToggleMute, onVictory, onGameOver }: Fase2Props) {
   const { p, dav, enemies, food, texts, particles, keysRef, frame, cam, shake, score, bossEnemy } = useGameEngine({
     initialScore, initialHp,
     bossThreshold: 1000,
@@ -62,4 +62,5 @@ export default function Fase1({ initialScore, initialHp, muted, onToggleMute, on
       <TouchActions keysRef={keysRef} />
     </>
   );
+
 }
