@@ -80,7 +80,6 @@ export default function App() {
             onToggleMute={toggleMute}
             onComplete={onFase1Complete}
             onGameOver={onGameOver}
-            onRestart={startGame}
           />
         )}
 
@@ -92,7 +91,6 @@ export default function App() {
             onToggleMute={toggleMute}
             onVictory={onVictory}
             onGameOver={onGameOver}
-            onRestart={startGame}
           />
         )}
 
