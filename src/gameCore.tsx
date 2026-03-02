@@ -437,7 +437,7 @@ export function VictoryScreen({ score, onRetry }: { score: number; onRetry: () =
 //  GAME LOOP HELPERS (compartilhados entre fases)
 // ─────────────────────────────────────────────────────
 
-export function updatePlayerMovement(p: Player, k: Record<string, boolean>, particles: Particle[]) {
+export function updatePlayerMovement(p: Player, k: Record<string, boolean>) {
   let ix = 0, iy = 0;
   if (k['arrowleft'] || k['a']) ix -= 1; if (k['arrowright'] || k['d']) ix += 1;
   if (k['arrowup'] || k['w']) iy -= 1; if (k['arrowdown'] || k['s']) iy += 1;
@@ -619,7 +619,7 @@ export function updateSukaAI(e: Enemy, p: Player, dav: Davisaum, particles: Part
   return 'alive';
 }
 
-export function updateFurioAI(e: Enemy, p: Player, dav: Davisaum, particles: Particle[], texts: FloatingTextData[], f: number, screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
+export function updateFurioAI(e: Enemy, p: Player, _dav: Davisaum, particles: Particle[], texts: FloatingTextData[], f: number, screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y;
   const hx = Math.abs(dx), hy = Math.abs(dy);
   e.dir = dx > 0 ? 'right' : 'left';
@@ -806,4 +806,5 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
     texts: textsRef.current, particles: particlesRef.current, keysRef, frame: frameTick,
     cam: cameraRef.current, shake: screenShakeRef.current, score, bossEnemy: enemiesRef.current.find(e => isBossType(e.type))
   };
+
 }
