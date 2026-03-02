@@ -8,9 +8,12 @@ import {
 } from './gameCore';
 
 export interface Fase2Props {
-  initialScore: number; initialHp: number; muted: boolean;
-  onToggleMute: () => void; onVictory: (score: number) => void;
-  onGameOver: (score: number) => void; onRestart: () => void;
+  initialScore: number; 
+  initialHp: number; 
+  muted: boolean;
+  onToggleMute: () => void; 
+  onVictory: (score: number) => void;
+  onGameOver: (score: number) => void;
 }
 
 export default function Fase2({ initialScore, initialHp, muted, onToggleMute, onVictory, onGameOver }: Fase2Props) {
@@ -77,4 +80,5 @@ export default function Fase2({ initialScore, initialHp, muted, onToggleMute, on
     </>
   );
 }
+
 
