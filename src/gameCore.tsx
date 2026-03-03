@@ -40,10 +40,13 @@ export const BUFA_DAMAGE_NORMAL = 3;
 export const BUFA_DAMAGE_BOSS = 5;
 export const BUFA_DURATION = 50;
 export const BUFA_ACTIVE_START = 12;
-export const BUFA_RENDER_SCALE = 2;
-export const BUFA_PLAYER_RENDER_SCALE = BUFA_RENDER_SCALE * 2;
+
+// ESCALAS DA BUFA CELESTE DOBRADAS
+export const BUFA_RENDER_SCALE = 4; 
+export const BUFA_PLAYER_RENDER_SCALE = BUFA_RENDER_SCALE * 2; 
 export const BUFA_SMOKE_RENDER_SCALE = BUFA_RENDER_SCALE;
-export const BUFA_HITBOX_SCALE = 2;
+export const BUFA_HITBOX_SCALE = 4;
+
 export const HITSTOP_FRAMES = 4;
 export const KNOCKBACK_DECAY = 0.82;
 export const COMBO_TIMEOUT = 90;
@@ -53,7 +56,7 @@ export const SPAWN_INTERVAL_MS = 3500;
 export const MAX_ENEMIES = 7;
 export const MAX_HP = 100;
 export const FOOD_SIZE = 28;
-export const MAX_PARTICLES = 100; // Aumentado para suportar a fumaça
+export const MAX_PARTICLES = 100;
 
 export const DAV_SCARED_ENTER = 130;
 export const DAV_SCARED_EXIT = 220;
@@ -109,7 +112,7 @@ export interface Particle {
   x: number; y: number;
   vx: number; vy: number;
   life: number;
-  startLife: number; // Corrigido de maxLife para startLife
+  startLife: number;
   color: string;
   size: number;
   startSize: number;
@@ -158,7 +161,6 @@ export function spawnParticles(arr: Particle[], count: number, x: number, y: num
   }
 }
 
-// NOVA FUNÇÃO: Gera a fumaça da Bufa Celeste
 export function spawnCelestialSmoke(particles: Particle[], x: number, y: number) {
   for (let i = 0; i < 2; i++) {
     const life = rng(1.2, 1.8);
@@ -334,13 +336,11 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
     
     if (sx < -edgeMargin || sx > BASE_W + edgeMargin) return null; 
 
-    // Efeito 1: Anel de explosão
     if (p.type === 'ring') { 
       const sc = 1 + (1 - alpha) * 2; 
       return <div key={p.id} style={{ position: 'absolute', left: 0, top: 0, transform: `translate3d(${sx - 20}px, ${p.y - 20}px, 0) scale(${sc})`, width: 40, height: 40, borderRadius: '50%', border: `3px solid ${p.color}`, opacity: alpha * 0.6, pointerEvents: 'none', zIndex: 9998 }} />; 
     } 
 
-    // Efeito 2: A Bufa Celeste Animada (CÓDIGO NOVO AQUI)
     if (p.type === 'smoke') {
       const lifeRatio = p.life / p.startLife;
       
@@ -364,7 +364,7 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
             width: renderedSize,
             height: renderedSize,
             opacity: alpha,
-            imageRendering: 'pixelated', // Mantém o visual retro
+            imageRendering: 'pixelated',
             pointerEvents: 'none',
             zIndex: 9997 
           }}
@@ -372,7 +372,6 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
       );
     }
     
-    // Efeito 3: Faíscas Padrão
     return (
       <div key={p.id} style={{ 
         position: 'absolute', left: 0, top: 0, 
@@ -481,6 +480,7 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
     </div>
   );
 }
+
 export function PhaseTransitionScreen({ score: _score, onContinue }: { score: number; onContinue: () => void }) {
   return <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
     <div>FASE CONCLUÍDA!</div>
@@ -564,10 +564,19 @@ export function updateDavisAI(dav: Davisaum, p: Player, _enemies: Enemy[], food:
   }
 }
 
+// CORRIGIDO: Checa se a comida pousou na linha do chão (Y) do player
 export function updateItems(food: FoodItem[], p: Player, _texts: FloatingTextData[], _particles: Particle[], _f: number) {
   for (let i = food.length - 1; i >= 0; i--) {
     const fo = food[i];
-    if (!fo.landed) { fo.vy += 0.3; fo.y += fo.vy; if (fo.vy > 0) fo.landed = true; }
+    if (!fo.landed) { 
+      fo.vy += 0.3; 
+      fo.y += fo.vy; 
+      // Comida aterriza apenas ao tocar a linha de Y do jogador
+      if (fo.vy > 0 && fo.y >= p.y) { 
+        fo.y = p.y; 
+        fo.landed = true; 
+      } 
+    }
     if (dist(fo.x, fo.y, p.x, p.y) < 30) {
       p.hp = Math.min(MAX_HP, p.hp + 20); playSFX('eat');
       food.splice(i, 1);
@@ -575,7 +584,6 @@ export function updateItems(food: FoodItem[], p: Player, _texts: FloatingTextDat
   }
 }
 
-// CORRIGIDO: Lógica de fumaça integrada no atualizador de partículas
 export function updateParticlesAndTexts(particles: Particle[], texts: FloatingTextData[], f: number) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const pt = particles[i];
@@ -598,17 +606,20 @@ export function updateParticlesAndTexts(particles: Particle[], texts: FloatingTe
   for (let i = texts.length - 1; i >= 0; i--) { if (f - texts[i].t >= 60) texts.splice(i, 1); }
 }
 
+// CORRIGIDO: Hitbox apenas direcional e exigindo proximidade no eixo Z (p.z < 30)
 export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _texts: FloatingTextData[], _f: number): boolean {
-  const dx = Math.abs(e.x - p.x);
+  const dxReal = e.x - p.x;
+  const dx = Math.abs(dxReal);
   const dy = Math.abs(e.y - p.y);
+  const isFacing = (p.dir === 'right' && dxReal >= 0) || (p.dir === 'left' && dxReal <= 0);
   const pf = PUNCH_DURATION - p.atkTimer;
   
-  if (p.attacking && pf >= PUNCH_ACTIVE[0] && pf <= PUNCH_ACTIVE[1] && dx < PUNCH_RANGE && dy < PUNCH_DEPTH && !e.hitThisSwing) {
+  if (p.attacking && pf >= PUNCH_ACTIVE[0] && pf <= PUNCH_ACTIVE[1] && dx < PUNCH_RANGE && dy < PUNCH_DEPTH && isFacing && p.z < 30 && !e.hitThisSwing) {
     e.hitThisSwing = true; e.hp -= PUNCH_DAMAGE; e.hurt = true; e.hurtTimer = 10;
     p.combo++; p.comboTimer = COMBO_TIMEOUT; playSFX('hit');
     spawnParticles(particles, 5, e.x, e.y - 30, '#f1c40f', 'spark');
   }
-  if (p.buffing && p.buffTimer < (BUFA_DURATION - BUFA_ACTIVE_START) && dx < BUFA_RANGE * BUFA_HITBOX_SCALE && dy < BUFA_DEPTH * BUFA_HITBOX_SCALE && !e.hitThisSwing) {
+  if (p.buffing && p.buffTimer < (BUFA_DURATION - BUFA_ACTIVE_START) && dx < BUFA_RANGE * BUFA_HITBOX_SCALE && dy < BUFA_DEPTH * BUFA_HITBOX_SCALE && isFacing && p.z < 30 && !e.hitThisSwing) {
     e.hitThisSwing = true; e.hp -= BUFA_DAMAGE_NORMAL; e.hurt = true; e.hurtTimer = 15;
     p.combo++; p.comboTimer = COMBO_TIMEOUT;
     spawnParticles(particles, 8, e.x, e.y - 30, '#2ecc71', 'smoke');
@@ -616,12 +627,14 @@ export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _tex
   return e.hp <= 0;
 }
 
+// CORRIGIDO: Dano do inimigo inclui a limitação p.z < 20 (pulo salva) e limita o HP negativo
 export function updateBasicEnemyAI(e: Enemy, p: Player, _particles: Particle[], _texts: FloatingTextData[], _f: number): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
   if (d > 50) { e.x += Math.sign(dx) * ENEMY_SPEED; e.y += Math.sign(dy) * ENEMY_SPEED * 0.5; e.walking = true; } else e.walking = false;
   e.dir = dx > 0 ? 'right' : 'left';
-  if (d < 50 && p.invincible <= 0 && e.atkCd <= 0) {
-    e.atkCd = 60; p.hp = Math.max(0, p.hp - 10); p.hurt = true; p.invincible = 30;
+  
+  if (d < 50 && p.invincible <= 0 && e.atkCd <= 0 && p.z < 20) {
+    e.atkCd = 60; p.hp = Math.max(0, p.hp - 10); p.hurt = true; p.hurtTimer = 20; p.invincible = 30;
     if (p.hp <= 0) return 'dead';
   }
   if (e.atkCd > 0) e.atkCd--;
@@ -632,8 +645,8 @@ export function updateSukaAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Pa
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
   if (e.stateTimer > 0) {
     e.stateTimer--; 
-    if (e.stateTimer === 1 && d < 150) {
-      p.hp = Math.max(0, p.hp - 20); p.hurt = true; screenShakeRef.current = 10;
+    if (e.stateTimer === 1 && d < 150 && p.invincible <= 0 && p.z < 20) {
+      p.hp = Math.max(0, p.hp - 20); p.hurt = true; p.hurtTimer = 20; p.invincible = 30; screenShakeRef.current = 10;
       if (p.hp <= 0) return 'dead';
     }
   } else if (d < 150 && e.atkCd <= 0) { e.stateTimer = 40; e.atkCd = 120; }
@@ -642,10 +655,17 @@ export function updateSukaAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Pa
   return 'alive';
 }
 
+// CORRIGIDO: Chefe ataca de verdade com Z-axis
 export function updateFurioAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Particle[], _texts: FloatingTextData[], _f: number, _screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
   if (e.charging) {
     e.x += (e.chargeDir || 0) * 6; e.stateTimer--;
+    
+    if (d < 70 && p.invincible <= 0 && p.z < 20) {
+      p.hp = Math.max(0, p.hp - 25); p.hurt = true; p.hurtTimer = 20; p.invincible = 40; _screenShakeRef.current = 15;
+      if (p.hp <= 0) return 'dead';
+    }
+    
     if (e.stateTimer <= 0) e.charging = false;
   } else if (d < 200 && e.atkCd <= 0) {
     e.charging = true; e.chargeDir = Math.sign(dx); e.stateTimer = 40; e.atkCd = 100;
@@ -819,7 +839,6 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
         }
 
         let stateResult: 'dead' | 'alive' = 'alive';
-        // CORREÇÃO: Variável dav passada corretamente
         if (e.type === 'suka') stateResult = updateSukaAI(e, p, dav, particles, texts, f, screenShakeRef);
         else if (e.type === 'furio') stateResult = updateFurioAI(e, p, dav, particles, texts, f, screenShakeRef);
         else stateResult = updateBasicEnemyAI(e, p, particles, texts, f);
