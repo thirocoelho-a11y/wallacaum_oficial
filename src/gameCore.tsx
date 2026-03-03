@@ -16,6 +16,8 @@ export const WORLD_W = 3200;
 export const FLOOR_MIN = BASE_H - 100;
 export const FLOOR_MAX = BASE_H - 18;
 export const LEVEL_HEIGHT = FLOOR_MAX - FLOOR_MIN;
+export const WORLD_MIN_Y = FLOOR_MIN;
+export const WORLD_MAX_Y = FLOOR_MIN + LEVEL_HEIGHT;
 
 export const GRAVITY = 0.65;
 export const JUMP_FORCE = 9;
@@ -129,7 +131,8 @@ export const DEFAULT_DAVIS: Davisaum = { x: 100, y: 380, dir: 'right', throwTime
 // ─────────────────────────────────────────────────────
 export const rng = (a: number, b: number) => Math.random() * (b - a) + a;
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-export const clampLevelY = (y: number) => clamp(y, FLOOR_MIN, FLOOR_MIN + LEVEL_HEIGHT);
+export const clampY = (y: number) => clamp(y, WORLD_MIN_Y, WORLD_MAX_Y);
+export const clampLevelY = clampY;
 let _id = 0;
 export const uid = () => `u${++_id}`;
 export const resetUid = () => { _id = 0; };
@@ -478,7 +481,7 @@ export function updatePlayerMovement(p: Player, k: Record<string, boolean>) {
   if (iy !== 0) { p.vy += iy * PLAYER_ACCEL * 0.65; p.vy = clamp(p.vy, -PLAYER_MAX_SPEED * 0.65, PLAYER_MAX_SPEED * 0.65); }
   else { p.vy *= PLAYER_DECEL; if (Math.abs(p.vy) < 0.1) p.vy = 0; }
   p.x += p.vx; p.y += p.vy;
-  p.x = clamp(p.x, 30, WORLD_W - 30); p.y = clampLevelY(p.y);
+  p.x = clamp(p.x, 30, WORLD_W - 30);
 }
 
 export function updatePlayerJump(p: Player, k: Record<string, boolean>, particles: Particle[]) {
@@ -520,7 +523,6 @@ export function updateIdleEating(p: Player, k: Record<string, boolean>, _particl
 export function updateDavisAI(dav: Davisaum, p: Player, _enemies: Enemy[], food: FoodItem[], f: number) {
   const d = dist(dav.x, dav.y, p.x, p.y);
   if (d > 100) { dav.x += (p.x - dav.x) * 0.05; dav.y += (p.y - dav.y) * 0.05; dav.isWalking = true; } else dav.isWalking = false;
-  dav.y = clampLevelY(dav.y);
   dav.dir = dav.x < p.x ? 'right' : 'left';
   dav.throwTimer++; 
   if (dav.throwTimer > 240) { 
@@ -584,7 +586,6 @@ export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _tex
 export function updateBasicEnemyAI(e: Enemy, p: Player, _particles: Particle[], _texts: FloatingTextData[], _f: number): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
   if (d > 50) { e.x += Math.sign(dx) * ENEMY_SPEED; e.y += Math.sign(dy) * ENEMY_SPEED * 0.5; e.walking = true; } else e.walking = false;
-  e.y = clampLevelY(e.y);
   e.dir = dx > 0 ? 'right' : 'left';
   if (d < 50 && p.invincible <= 0 && e.atkCd <= 0) {
     e.atkCd = 60; p.hp = Math.max(0, p.hp - 10); p.hurt = true; p.invincible = 30;
@@ -605,7 +606,6 @@ export function updateSukaAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Pa
   } else if (d < 150 && e.atkCd <= 0) { e.stateTimer = 40; e.atkCd = 120; }
   if (e.atkCd > 0) e.atkCd--;
   e.x += Math.sign(dx) * ENEMY_SPEED * 0.6; e.y += Math.sign(dy) * ENEMY_SPEED * 0.4;
-  e.y = clampLevelY(e.y);
   return 'alive';
 }
 
@@ -618,7 +618,6 @@ export function updateFurioAI(e: Enemy, p: Player, _dav: Davisaum, _particles: P
     e.charging = true; e.chargeDir = Math.sign(dx); e.stateTimer = 40; e.atkCd = 100;
   }
   if (e.atkCd > 0) e.atkCd--;
-  e.y = clampLevelY(e.y);
   return 'alive';
 }
 
@@ -752,6 +751,7 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
 
       updateIdleEating(p, k, particles, texts, f);
       updatePlayerMovement(p, k);
+      p.y = clampY(p.y);
       updatePlayerJump(p, k, particles);
       
       // LOGICA DA BUFA CELESTE: Fumaça visual
@@ -762,16 +762,24 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       cameraRef.current += (clamp(p.x - BASE_W / 2, 0, WORLD_W - BASE_W) - cameraRef.current) * 0.07;
       updatePlayerAttacks(p, k, enemies, screenShakeRef);
       updateDavisAI(dav, p, enemies, foodRef.current, f);
+      dav.y = clampY(dav.y);
 
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
-        if (e.hurtTimer > 0) { e.hurtTimer--; if (e.hurtTimer <= 0) e.hurt = false; continue; }
+        if (e.hurtTimer > 0) {
+          e.hurtTimer--;
+          if (e.hurtTimer <= 0) e.hurt = false;
+          e.y = clampY(e.y);
+          continue;
+        }
 
         let stateResult: 'dead' | 'alive' = 'alive';
         // CORREÇÃO: Variável dav passada corretamente
         if (e.type === 'suka') stateResult = updateSukaAI(e, p, dav, particles, texts, f, screenShakeRef);
         else if (e.type === 'furio') stateResult = updateFurioAI(e, p, dav, particles, texts, f, screenShakeRef);
         else stateResult = updateBasicEnemyAI(e, p, particles, texts, f);
+
+        e.y = clampY(e.y);
 
         if (stateResult === 'dead') { setDead(true); cfgRef.current.onGameOver(scoreRef.current); return; }
 
