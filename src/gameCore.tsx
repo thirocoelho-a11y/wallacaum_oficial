@@ -415,7 +415,7 @@ export const HpBar = React.memo(function HpBar({ hp, maxHp }: { hp: number; maxH
     </div>
   </div>;
 });
-export const ScoreDisplay = React.memo(function ScoreDisplay({ score, combo, phase }: { score: number; combo: number; phase: number }) {
+export const ScoreDisplay = React.memo(function ScoreDisplay({ score, combo, phase: _phase }: { score: number; combo: number; phase: number }) {
   return <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10000, textAlign: 'right', color: '#fff' }}>
     <div style={{ fontSize: 12 }}>{String(score).padStart(6, '0')}</div>
     {combo >= 2 && <div style={{ color: '#f1c40f', fontSize: 8 }}>x{combo} COMBO</div>}
@@ -441,19 +441,19 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
     <div onClick={onStart} style={{ marginTop: 20, padding: 10, border: '2px solid #fff', color: '#fff', cursor: 'pointer' }}>START</div>
   </div>;
 }
-export function PhaseTransitionScreen({ score, onContinue }: { score: number; onContinue: () => void }) {
+export function PhaseTransitionScreen({ score: _score, onContinue }: { score: number; onContinue: () => void }) {
   return <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
     <div>FASE CONCLUÍDA!</div>
     <div onClick={onContinue} style={{ marginTop: 20, cursor: 'pointer' }}>PRÓXIMA FASE</div>
   </div>;
 }
-export function GameOverScreen({ score, onRetry }: { score: number; onRetry: () => void }) {
+export function GameOverScreen({ score: _score, onRetry }: { score: number; onRetry: () => void }) {
   return <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: 'rgba(100,0,0,0.8)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
     <div style={{ fontSize: 32 }}>GAME OVER</div>
     <div onClick={onRetry} style={{ marginTop: 20, cursor: 'pointer' }}>RETRY</div>
   </div>;
 }
-export function VictoryScreen({ score, onRetry }: { score: number; onRetry: () => void }) {
+export function VictoryScreen({ score: _score, onRetry }: { score: number; onRetry: () => void }) {
   return <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: 'rgba(0,100,0,0.8)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
     <div>VITÓRIA!</div>
     <div onClick={onRetry} style={{ marginTop: 20, cursor: 'pointer' }}>JOGAR NOVAMENTE</div>
@@ -500,7 +500,7 @@ export function updatePlayerAttacks(p: Player, k: Record<string, boolean>, enemi
   if (p.comboTimer > 0) { p.comboTimer--; if (p.comboTimer <= 0) p.combo = 0; }
 }
 
-export function updateIdleEating(p: Player, k: Record<string, boolean>, particles: Particle[], texts: FloatingTextData[], f: number) {
+export function updateIdleEating(p: Player, k: Record<string, boolean>, _particles: Particle[], texts: FloatingTextData[], f: number) {
   const move = !!(k['arrowleft'] || k['arrowright'] || k['arrowup'] || k['arrowdown']);
   if (move || p.attacking || p.buffing || p.hurt) { p.idleTimer = 0; p.eating = false; }
   else {
@@ -513,7 +513,7 @@ export function updateIdleEating(p: Player, k: Record<string, boolean>, particle
   }
 }
 
-export function updateDavisAI(dav: Davisaum, p: Player, enemies: Enemy[], food: FoodItem[], f: number) {
+export function updateDavisAI(dav: Davisaum, p: Player, _enemies: Enemy[], food: FoodItem[], f: number) {
   const d = dist(dav.x, dav.y, p.x, p.y);
   if (d > 100) { dav.x += (p.x - dav.x) * 0.05; dav.y += (p.y - dav.y) * 0.05; dav.isWalking = true; } else dav.isWalking = false;
   dav.dir = dav.x < p.x ? 'right' : 'left';
@@ -524,7 +524,7 @@ export function updateDavisAI(dav: Davisaum, p: Player, enemies: Enemy[], food: 
   }
 }
 
-export function updateItems(food: FoodItem[], p: Player, texts: FloatingTextData[], particles: Particle[], f: number) {
+export function updateItems(food: FoodItem[], p: Player, _texts: FloatingTextData[], _particles: Particle[], _f: number) {
   for (let i = food.length - 1; i >= 0; i--) {
     const fo = food[i];
     if (!fo.landed) { fo.vy += 0.3; fo.y += fo.vy; if (fo.vy > 0) fo.landed = true; }
@@ -558,7 +558,7 @@ export function updateParticlesAndTexts(particles: Particle[], texts: FloatingTe
   for (let i = texts.length - 1; i >= 0; i--) { if (f - texts[i].t >= 60) texts.splice(i, 1); }
 }
 
-export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], texts: FloatingTextData[], f: number): boolean {
+export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _texts: FloatingTextData[], _f: number): boolean {
   const dx = Math.abs(e.x - p.x);
   const dy = Math.abs(e.y - p.y);
   const pf = PUNCH_DURATION - p.atkTimer;
@@ -576,7 +576,7 @@ export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], text
   return e.hp <= 0;
 }
 
-export function updateBasicEnemyAI(e: Enemy, p: Player, particles: Particle[], texts: FloatingTextData[], f: number): 'dead' | 'alive' {
+export function updateBasicEnemyAI(e: Enemy, p: Player, _particles: Particle[], _texts: FloatingTextData[], _f: number): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
   if (d > 50) { e.x += Math.sign(dx) * ENEMY_SPEED; e.y += Math.sign(dy) * ENEMY_SPEED * 0.5; e.walking = true; } else e.walking = false;
   e.dir = dx > 0 ? 'right' : 'left';
@@ -588,7 +588,7 @@ export function updateBasicEnemyAI(e: Enemy, p: Player, particles: Particle[], t
   return 'alive';
 }
 
-export function updateSukaAI(e: Enemy, p: Player, dav: Davisaum, particles: Particle[], texts: FloatingTextData[], f: number, screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
+export function updateSukaAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Particle[], _texts: FloatingTextData[], _f: number, screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
   if (e.stateTimer > 0) {
     e.stateTimer--; 
@@ -602,7 +602,7 @@ export function updateSukaAI(e: Enemy, p: Player, dav: Davisaum, particles: Part
   return 'alive';
 }
 
-export function updateFurioAI(e: Enemy, p: Player, dav: Davisaum, particles: Particle[], texts: FloatingTextData[], f: number, screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
+export function updateFurioAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Particle[], _texts: FloatingTextData[], _f: number, _screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
   if (e.charging) {
     e.x += (e.chargeDir || 0) * 6; e.stateTimer--;
