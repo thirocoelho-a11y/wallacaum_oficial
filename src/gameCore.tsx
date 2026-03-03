@@ -67,6 +67,32 @@ export const SPRITE_ENEMY_STD_W = 120;
 export const SPRITE_ENEMY_BOSS_W = 140;
 export const SPRITE_ENEMY_FURIO_W = 150;
 
+export const SPRITE_PLAYER_OFFSET_Y = 70;
+export const SPRITE_DAVIS_OFFSET_Y = 75;
+export const SPRITE_ENEMY_OFFSET_Y = 80;
+
+export interface EnginePhaseConfig {
+  initialScore: number;
+  initialHp: number;
+  bossThreshold: number;
+  spawnIntervalMs: number;
+  bossType: EnemyType;
+  bossHp: number;
+  bossAnnounce?: string;
+  bossAnnounceColor?: string;
+  bossDeathColor?: string;
+  bossDeathParticles?: Particle['type'];
+  getNormalEnemyType: () => EnemyType;
+  getNormalEnemyHp: (type: EnemyType) => number;
+  onGameOver: (score: number) => void;
+  onComplete: (score: number, hp: number) => void;
+}
+
+export const GAME_CSS = `
+  @keyframes pulse { from { transform: translateX(-50%) scale(1);} to { transform: translateX(-50%) scale(1.08);} }
+  * { box-sizing: border-box; }
+`;
+
 const CELESTIAL_SMOKE_COLORS = ['#00f2ff', '#2ecc71', '#a2ffd1', '#0077ff'] as const;
 const frameToggle = (frame: number, step: number) => Math.floor(frame / step) % 2 === 0;
 
@@ -700,4 +726,46 @@ export const TouchActions = React.memo(function TouchActions({ keysRef }: any) {
 
 function createEnemy(type: EnemyType, x: number, y: number, hp: number): Enemy {
   return { id: uid(), type, x, y: clampLevelY(y), z: 0, hp, maxHp: hp, dir: 'left', walking: true, hurt: false, hurtTimer: 0, kbx: 0, kby: 0, atkCd: 0, stateTimer: 0, punchTimer: 0, hitThisSwing: false };
+}
+
+
+export const FoodItemComp = React.memo(function FoodItemComp({ type, landed }: { type: FoodItem['type']; landed: boolean }) {
+  const iconMap: Record<FoodItem['type'], string> = { burger: '🍔', fries: '🍟', manual: '📕', compass: '🧭' };
+  return (
+    <div style={{ width: FOOD_SIZE, height: FOOD_SIZE, borderRadius: 8, border: '2px solid #0008', display: 'grid', placeItems: 'center', fontSize: 18, background: landed ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)' }}>
+      {iconMap[type]}
+    </div>
+  );
+});
+
+export const FloatingText = React.memo(function FloatingText({ text, x, y, color, size }: { text: string; x: number; y: number; color: string; size: number }) {
+  return <div style={{ position: 'absolute', left: x, top: y, color, fontSize: size, fontWeight: 900, textShadow: '1px 1px 0 #000', pointerEvents: 'none' }}>{text}</div>;
+});
+
+export function TitleScreen({ onStart }: { onStart: () => void }) {
+  return <ScreenFrame title="WALLACAUM" subtitle="Pressione START" cta="START" onClick={onStart} />;
+}
+
+export function PhaseTransitionScreen({ score, onContinue }: { score: number; onContinue: () => void }) {
+  return <ScreenFrame title="FASE 1 CONCLUÍDA" subtitle={`Score: ${score}`} cta="IR PARA FASE 2" onClick={onContinue} />;
+}
+
+export function GameOverScreen({ score, onRetry }: { score: number; onRetry: () => void }) {
+  return <ScreenFrame title="GAME OVER" subtitle={`Score final: ${score}`} cta="TENTAR NOVAMENTE" onClick={onRetry} />;
+}
+
+export function VictoryScreen({ score, onRetry }: { score: number; onRetry: () => void }) {
+  return <ScreenFrame title="VOCÊ VENCEU" subtitle={`Score final: ${score}`} cta="JOGAR DE NOVO" onClick={onRetry} />;
+}
+
+function ScreenFrame({ title, subtitle, cta, onClick }: { title: string; subtitle: string; cta: string; onClick: () => void }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'radial-gradient(circle at center, #111 0%, #000 70%)', color: '#fff', textAlign: 'center' }}>
+      <div>
+        <h1 style={{ margin: '0 0 16px', fontSize: 42 }}>{title}</h1>
+        <p style={{ margin: '0 0 24px', opacity: 0.9 }}>{subtitle}</p>
+        <button onClick={onClick} style={{ padding: '10px 18px', fontWeight: 700, borderRadius: 8, border: '2px solid #fff', background: '#222', color: '#fff', cursor: 'pointer' }}>{cta}</button>
+      </div>
+    </div>
+  );
 }
