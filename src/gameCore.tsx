@@ -407,7 +407,7 @@ export const TouchActions = React.memo(function TouchActions({ keysRef }: { keys
 //  HUD & TELAS
 // ─────────────────────────────────────────────────────
 export const HpBar = React.memo(function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
-  const pct = (hp / maxHp) * 100;
+  const pct = (clamp(hp, 0, maxHp) / maxHp) * 100;
   return <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10000, background: 'rgba(0,0,0,0.6)', padding: 5, borderRadius: 5 }}>
     <div style={{ color: '#f1c40f', fontSize: 8 }}>WALLAÇAUM</div>
     <div style={{ width: 100, height: 10, background: '#333', border: '1px solid #555' }}>
@@ -423,7 +423,7 @@ export const ScoreDisplay = React.memo(function ScoreDisplay({ score, combo, pha
 });
 export function BossHpBar({ enemy }: { enemy: Enemy | undefined }) {
   if (!enemy) return null;
-  const pct = (enemy.hp / enemy.maxHp) * 100;
+  const pct = (clamp(enemy.hp, 0, enemy.maxHp) / enemy.maxHp) * 100;
   return <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, width: 200, background: 'rgba(0,0,0,0.7)', padding: 5 }}>
     <div style={{ color: '#e74c3c', fontSize: 8, textAlign: 'center' }}>CHEFE</div>
     <div style={{ width: '100%', height: 6, background: '#333' }}>
@@ -581,7 +581,7 @@ export function updateBasicEnemyAI(e: Enemy, p: Player, _particles: Particle[], 
   if (d > 50) { e.x += Math.sign(dx) * ENEMY_SPEED; e.y += Math.sign(dy) * ENEMY_SPEED * 0.5; e.walking = true; } else e.walking = false;
   e.dir = dx > 0 ? 'right' : 'left';
   if (d < 50 && p.invincible <= 0 && e.atkCd <= 0) {
-    e.atkCd = 60; p.hp -= 10; p.hurt = true; p.invincible = 30;
+    e.atkCd = 60; p.hp = Math.max(0, p.hp - 10); p.hurt = true; p.invincible = 30;
     if (p.hp <= 0) return 'dead';
   }
   if (e.atkCd > 0) e.atkCd--;
@@ -593,7 +593,7 @@ export function updateSukaAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Pa
   if (e.stateTimer > 0) {
     e.stateTimer--; 
     if (e.stateTimer === 1 && d < 150) {
-      p.hp -= 20; p.hurt = true; screenShakeRef.current = 10;
+      p.hp = Math.max(0, p.hp - 20); p.hurt = true; screenShakeRef.current = 10;
       if (p.hp <= 0) return 'dead';
     }
   } else if (d < 150 && e.atkCd <= 0) { e.stateTimer = 40; e.atkCd = 120; }
@@ -636,7 +636,30 @@ export interface EnginePhaseConfig {
   onGameOver: (score: number) => void; onComplete: (score: number, hp: number) => void;
 }
 
+function createEnemy(type: EnemyType, x: number, y: number, hp: number): Enemy {
+  return {
+    id: uid(),
+    type,
+    x,
+    y,
+    z: 0,
+    hp,
+    maxHp: hp,
+    dir: 'left',
+    walking: true,
+    hurt: false,
+    hurtTimer: 0,
+    kbx: 0,
+    kby: 0,
+    atkCd: 0,
+    stateTimer: 0,
+    punchTimer: 0,
+    hitThisSwing: false,
+  };
+}
+
 export function useGameEngine(cfg: EnginePhaseConfig) {
+  const cfgRef = useRef(cfg);
   const playerRef = useRef<Player>({ ...DEFAULT_PLAYER, hp: cfg.initialHp });
   const enemiesRef = useRef<Enemy[]>([]);
   const foodRef = useRef<FoodItem[]>([]);
@@ -656,10 +679,57 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
   const [frameTick, setFrameTick] = useState(0);
 
   useEffect(() => {
-    const d = (e: KeyboardEvent) => { keysRef.current[e.key.toLowerCase()] = true; };
-    const u = (e: KeyboardEvent) => { keysRef.current[e.key.toLowerCase()] = false; };
-    window.addEventListener('keydown', d); window.addEventListener('keyup', u);
-    return () => { window.removeEventListener('keydown', d); window.removeEventListener('keyup', u); };
+    cfgRef.current = cfg;
+  }, [cfg]);
+
+  useEffect(() => {
+    resetUid();
+    cfgRef.current = cfg;
+    playerRef.current = { ...DEFAULT_PLAYER, hp: cfg.initialHp };
+    enemiesRef.current = [];
+    foodRef.current = [];
+    textsRef.current = [];
+    particlesRef.current = [];
+    davisRef.current = { ...DEFAULT_DAVIS };
+    keysRef.current = {};
+    frameRef.current = 0;
+    spawnTimerRef.current = 0;
+    cameraRef.current = 0;
+    bossSpawned.current = false;
+    screenShakeRef.current = 0;
+    scoreRef.current = cfg.initialScore;
+    setScore(cfg.initialScore);
+    setDead(false);
+    setFrameTick(0);
+  }, [cfg.initialHp, cfg.initialScore]);
+
+  useEffect(() => {
+    const gameplayKeys = new Set(['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', 'a', 'd', 'w', 's', 'x', 'z', 'c']);
+    const d = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (gameplayKeys.has(key)) {
+        e.preventDefault();
+      }
+      keysRef.current[key] = true;
+    };
+    const u = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (gameplayKeys.has(key)) {
+        e.preventDefault();
+      }
+      keysRef.current[key] = false;
+    };
+    const clearKeys = () => { keysRef.current = {}; };
+    window.addEventListener('keydown', d, { passive: false });
+    window.addEventListener('keyup', u, { passive: false });
+    window.addEventListener('blur', clearKeys);
+    document.addEventListener('visibilitychange', clearKeys);
+    return () => {
+      window.removeEventListener('keydown', d);
+      window.removeEventListener('keyup', u);
+      window.removeEventListener('blur', clearKeys);
+      document.removeEventListener('visibilitychange', clearKeys);
+    };
   }, []);
 
   useEffect(() => {
@@ -695,24 +765,28 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
         else if (e.type === 'furio') stateResult = updateFurioAI(e, p, dav, particles, texts, f, screenShakeRef);
         else stateResult = updateBasicEnemyAI(e, p, particles, texts, f);
 
-        if (stateResult === 'dead') { setDead(true); cfg.onGameOver(scoreRef.current); return; }
+        if (stateResult === 'dead') { setDead(true); cfgRef.current.onGameOver(scoreRef.current); return; }
 
         if (checkPlayerHits(e, p, particles, texts, f)) {
           enemies.splice(i, 1); scoreRef.current += 100; setScore(scoreRef.current);
-          if (e.type === cfg.bossType) cfg.onComplete(scoreRef.current, p.hp);
+          if (e.type === cfgRef.current.bossType) cfgRef.current.onComplete(scoreRef.current, p.hp);
         }
       }
 
       updateItems(foodRef.current, p, texts, particles, f);
 
-      if (scoreRef.current >= cfg.bossThreshold && !bossSpawned.current) {
+      if (scoreRef.current >= cfgRef.current.bossThreshold && !bossSpawned.current) {
         bossSpawned.current = true;
-        enemies.push({ id: uid(), type: cfg.bossType, x: p.x + 400, y: p.y, z: 0, hp: cfg.bossHp, maxHp: cfg.bossHp, dir: 'left', walking: true, hurt: false, hurtTimer: 0, kbx: 0, kby: 0, atkCd: 60, stateTimer: 0, punchTimer: 0, hitThisSwing: false } as any);
+        const boss = createEnemy(cfgRef.current.bossType, p.x + 400, p.y, cfgRef.current.bossHp);
+        boss.atkCd = 60;
+        enemies.push(boss);
       } else {
         spawnTimerRef.current++;
-        if (spawnTimerRef.current > cfg.spawnIntervalMs / 16 && enemies.length < MAX_ENEMIES) {
+        if (spawnTimerRef.current > cfgRef.current.spawnIntervalMs / 16 && enemies.length < MAX_ENEMIES) {
           spawnTimerRef.current = 0;
-          enemies.push({ id: uid(), type: cfg.getNormalEnemyType(), x: p.x + 500, y: rng(FLOOR_MIN, FLOOR_MAX), z: 0, hp: 5, maxHp: 5, dir: 'left', walking: true, hurt: false, hurtTimer: 0, kbx: 0, kby: 0, atkCd: 0, stateTimer: 0, punchTimer: 0, hitThisSwing: false } as any);
+          const enemyType = cfgRef.current.getNormalEnemyType();
+          const enemyHp = cfgRef.current.getNormalEnemyHp(enemyType);
+          enemies.push(createEnemy(enemyType, p.x + 500, rng(FLOOR_MIN, FLOOR_MAX), enemyHp));
         }
       }
 
@@ -731,4 +805,3 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
     cam: cameraRef.current, shake: screenShakeRef.current, score, bossEnemy: enemiesRef.current.find(e => isBossType(e.type))
   };
 }
-
