@@ -453,10 +453,33 @@ export const MusicButton = React.memo(function MusicButton({ muted, onToggle }: 
 });
 
 export function TitleScreen({ onStart }: { onStart: () => void }) {
-  return <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-    <div style={{ fontSize: 28, color: '#f1c40f' }}>WALLAÇAUM</div>
-    <div onClick={onStart} style={{ marginTop: 20, padding: 10, border: '2px solid #fff', color: '#fff', cursor: 'pointer' }}>START</div>
-  </div>;
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <div style={{ fontSize: 48, color: '#f1c40f', textShadow: '4px 4px 0px #c0392b', letterSpacing: 4, marginBottom: 10 }}>WALLAÇAUM</div>
+        <div style={{ fontSize: 14, color: '#e74c3c', letterSpacing: 2 }}>A CONSPIRAÇÃO DO SUPLEMENTO</div>
+      </div>
+      <div 
+        onClick={onStart} 
+        style={{ 
+          padding: '15px 30px', 
+          border: '3px solid #fff', 
+          borderRadius: 8, 
+          background: '#c0392b', 
+          color: '#fff', 
+          fontSize: 20, 
+          cursor: 'pointer', 
+          boxShadow: '0 0 15px rgba(255, 255, 255, 0.4)',
+          transition: 'transform 0.1s ease'
+        }}
+        onPointerDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+        onPointerUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        onPointerLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        PRESS START
+      </div>
+    </div>
+  );
 }
 export function PhaseTransitionScreen({ score: _score, onContinue }: { score: number; onContinue: () => void }) {
   return <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
