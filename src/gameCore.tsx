@@ -41,11 +41,11 @@ export const BUFA_DAMAGE_BOSS = 5;
 export const BUFA_DURATION = 50;
 export const BUFA_ACTIVE_START = 12;
 
-// ESCALAS DA BUFA CELESTE DOBRADAS
-export const BUFA_RENDER_SCALE = 4; 
-export const BUFA_PLAYER_RENDER_SCALE = BUFA_RENDER_SCALE * 2; 
-export const BUFA_SMOKE_RENDER_SCALE = BUFA_RENDER_SCALE;
-export const BUFA_HITBOX_SCALE = 4;
+/// ESCALAS DA BUFA CELESTE
+export const BUFA_RENDER_SCALE = 2.5; // Escala base menor
+export const BUFA_PLAYER_RENDER_SCALE = 1; // 1 = Herói mantém tamanho normal
+export const BUFA_SMOKE_RENDER_SCALE = 2;  // Tamanho final da fumaça
+export const BUFA_HITBOX_SCALE = 6; // Área de dano
 
 export const HITSTOP_FRAMES = 4;
 export const KNOCKBACK_DECAY = 0.82;
@@ -56,7 +56,7 @@ export const SPAWN_INTERVAL_MS = 3500;
 export const MAX_ENEMIES = 7;
 export const MAX_HP = 100;
 export const FOOD_SIZE = 28;
-export const MAX_PARTICLES = 100;
+export const MAX_PARTICLES = 150;
 
 export const DAV_SCARED_ENTER = 130;
 export const DAV_SCARED_EXIT = 220;
@@ -162,15 +162,15 @@ export function spawnParticles(arr: Particle[], count: number, x: number, y: num
 }
 
 export function spawnCelestialSmoke(particles: Particle[], x: number, y: number) {
-  for (let i = 0; i < 2; i++) {
-    const life = rng(1.2, 1.8);
-    const baseSize = rng(6, 10);
+  for (let i = 0; i < 3; i++) {
+    const life = rng(1.5, 2.5);
+    const baseSize = rng(35, 55); // Tamanho base colossal
     particles.push({
       id: Math.random(),
-      x: x + rng(-15, 15),
-      y: y + rng(-5, 5),
-      vx: rng(-0.4, 0.4),
-      vy: rng(-1.2, -0.6),
+      x: x + rng(-30, 30),
+      y: y + rng(-20, 10),
+      vx: rng(-1.5, 1.5),
+      vy: rng(-2.5, -1.0),
       life: life,
       startLife: life,
       color: CELESTIAL_SMOKE_COLORS[Math.floor(Math.random() * CELESTIAL_SMOKE_COLORS.length)],
@@ -564,14 +564,12 @@ export function updateDavisAI(dav: Davisaum, p: Player, _enemies: Enemy[], food:
   }
 }
 
-// CORRIGIDO: Checa se a comida pousou na linha do chão (Y) do player
 export function updateItems(food: FoodItem[], p: Player, _texts: FloatingTextData[], _particles: Particle[], _f: number) {
   for (let i = food.length - 1; i >= 0; i--) {
     const fo = food[i];
     if (!fo.landed) { 
       fo.vy += 0.3; 
       fo.y += fo.vy; 
-      // Comida aterriza apenas ao tocar a linha de Y do jogador
       if (fo.vy > 0 && fo.y >= p.y) { 
         fo.y = p.y; 
         fo.landed = true; 
@@ -606,7 +604,6 @@ export function updateParticlesAndTexts(particles: Particle[], texts: FloatingTe
   for (let i = texts.length - 1; i >= 0; i--) { if (f - texts[i].t >= 60) texts.splice(i, 1); }
 }
 
-// CORRIGIDO: Hitbox apenas direcional e exigindo proximidade no eixo Z (p.z < 30)
 export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _texts: FloatingTextData[], _f: number): boolean {
   const dxReal = e.x - p.x;
   const dx = Math.abs(dxReal);
@@ -627,13 +624,21 @@ export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _tex
   return e.hp <= 0;
 }
 
-// CORRIGIDO: Dano do inimigo inclui a limitação p.z < 20 (pulo salva) e limita o HP negativo
 export function updateBasicEnemyAI(e: Enemy, p: Player, _particles: Particle[], _texts: FloatingTextData[], _f: number): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
-  if (d > 50) { e.x += Math.sign(dx) * ENEMY_SPEED; e.y += Math.sign(dy) * ENEMY_SPEED * 0.5; e.walking = true; } else e.walking = false;
+  if (e.punchTimer > 0) e.punchTimer--;
+
+  if (d > 45) { 
+    e.x += Math.sign(dx) * ENEMY_SPEED; 
+    e.y += Math.sign(dy) * ENEMY_SPEED * 0.5; 
+    e.walking = true; 
+  } else { 
+    e.walking = false; 
+  }
   e.dir = dx > 0 ? 'right' : 'left';
   
-  if (d < 50 && p.invincible <= 0 && e.atkCd <= 0 && p.z < 20) {
+  if (d < 45 && p.invincible <= 0 && e.atkCd <= 0 && p.z < 20) {
+    e.punchTimer = 18;
     e.atkCd = 60; p.hp = Math.max(0, p.hp - 10); p.hurt = true; p.hurtTimer = 20; p.invincible = 30;
     if (p.hp <= 0) return 'dead';
   }
@@ -643,34 +648,48 @@ export function updateBasicEnemyAI(e: Enemy, p: Player, _particles: Particle[], 
 
 export function updateSukaAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Particle[], _texts: FloatingTextData[], _f: number, screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
+  if (e.punchTimer > 0) e.punchTimer--;
+
   if (e.stateTimer > 0) {
     e.stateTimer--; 
-    if (e.stateTimer === 1 && d < 150 && p.invincible <= 0 && p.z < 20) {
+    e.walking = false; 
+    if (e.stateTimer === 1 && d < 70 && p.invincible <= 0 && p.z < 20) {
+      e.punchTimer = 20;
       p.hp = Math.max(0, p.hp - 20); p.hurt = true; p.hurtTimer = 20; p.invincible = 30; screenShakeRef.current = 10;
       if (p.hp <= 0) return 'dead';
     }
-  } else if (d < 150 && e.atkCd <= 0) { e.stateTimer = 40; e.atkCd = 120; }
+  } else if (d < 70 && e.atkCd <= 0) { 
+    e.stateTimer = 40; e.atkCd = 120; e.walking = false; 
+  } else {
+    e.walking = true;
+    e.x += Math.sign(dx) * ENEMY_SPEED * 0.6; e.y += Math.sign(dy) * ENEMY_SPEED * 0.4;
+  }
   if (e.atkCd > 0) e.atkCd--;
-  e.x += Math.sign(dx) * ENEMY_SPEED * 0.6; e.y += Math.sign(dy) * ENEMY_SPEED * 0.4;
+  e.dir = dx > 0 ? 'right' : 'left';
   return 'alive';
 }
 
-// CORRIGIDO: Chefe ataca de verdade com Z-axis
 export function updateFurioAI(e: Enemy, p: Player, _dav: Davisaum, _particles: Particle[], _texts: FloatingTextData[], _f: number, _screenShakeRef: React.MutableRefObject<number>): 'dead' | 'alive' {
   const dx = p.x - e.x, dy = p.y - e.y, d = Math.sqrt(dx * dx + dy * dy);
+  if (e.punchTimer > 0) e.punchTimer--;
+
   if (e.charging) {
     e.x += (e.chargeDir || 0) * 6; e.stateTimer--;
-    
+    e.walking = true; 
     if (d < 70 && p.invincible <= 0 && p.z < 20) {
+      e.punchTimer = 20;
       p.hp = Math.max(0, p.hp - 25); p.hurt = true; p.hurtTimer = 20; p.invincible = 40; _screenShakeRef.current = 15;
       if (p.hp <= 0) return 'dead';
     }
-    
     if (e.stateTimer <= 0) e.charging = false;
   } else if (d < 200 && e.atkCd <= 0) {
-    e.charging = true; e.chargeDir = Math.sign(dx); e.stateTimer = 40; e.atkCd = 100;
+    e.charging = true; e.chargeDir = Math.sign(dx); e.stateTimer = 40; e.atkCd = 100; e.walking = false;
+  } else {
+    e.walking = true;
+    e.x += Math.sign(dx) * ENEMY_SPEED * 0.7; e.y += Math.sign(dy) * ENEMY_SPEED * 0.5;
   }
   if (e.atkCd > 0) e.atkCd--;
+  e.dir = dx > 0 ? 'right' : 'left';
   return 'alive';
 }
 
@@ -819,7 +838,6 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       clampEntityY(p);
       updatePlayerJump(p, k, particles);
       
-      // LOGICA DA BUFA CELESTE: Fumaça visual
       if (p.buffing && f % 2 === 0) {
         spawnCelestialSmoke(particles, p.x, p.y - 10);
       }
