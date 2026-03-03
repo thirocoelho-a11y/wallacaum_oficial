@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 // 1. Importe a lógica, os controles e a HUD do seu motor principal
 import { 
@@ -8,22 +8,19 @@ import {
   HpBar, 
   ScoreDisplay, 
   MusicButton,
-  EnginePhaseConfig
+  EnginePhaseConfig,
+  BASE_W,
+  BASE_H,
+  PixelWallacaum,
+  PixelDavisaum,
+  PixelAgent,
+  FoodItemComp,
+  FloatingText,
+  ParticleRenderer
 } from './gameCore';
 
-// 2. Importe os componentes visuais otimizados que criamos
-import { 
-  PixelWallacaum, 
-  PixelDavisaum, 
-  PixelAgent, 
-  FoodItemComp, 
-  FloatingText, 
-  ParticleRenderer 
-} from './components/Graphics'; // Ajuste este caminho se salvou em outro lugar!
-
 // 3. Importe o background da Fase 1
-import { BACKGROUND_FASE1 } from './sprites'; 
-import { BASE_W, BASE_H } from './constants'; 
+import { CENARIO_FASE1 as BACKGROUND_FASE1 } from './cenarioFase1'; 
 
 interface Fase1Props {
   initialScore: number;

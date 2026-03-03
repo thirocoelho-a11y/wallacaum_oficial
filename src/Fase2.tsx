@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 // 1. Importações do motor e interface
 import { 
@@ -9,22 +9,18 @@ import {
   ScoreDisplay, 
   MusicButton,
   BossHpBar,
-  EnginePhaseConfig
+  EnginePhaseConfig,
+  BASE_W,
+  BASE_H,
+  PixelWallacaum,
+  PixelDavisaum,
+  PixelAgent,
+  FoodItemComp,
+  FloatingText,
+  ParticleRenderer
 } from './gameCore';
 
-// 2. Importações dos gráficos otimizados
-import { 
-  PixelWallacaum, 
-  PixelDavisaum, 
-  PixelAgent, 
-  FoodItemComp, 
-  FloatingText, 
-  ParticleRenderer 
-} from './components/Graphics';
-
-// 3. Importações específicas da Fase 2
-import { BACKGROUND_FASE2 } from './spritesFase2'; 
-import { BASE_W, BASE_H } from './constants'; 
+import { CENARIO_FASE2 as BACKGROUND_FASE2 } from './cenarioFase2';
 
 interface Fase2Props {
   initialScore: number;
