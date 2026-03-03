@@ -41,6 +41,8 @@ export const BUFA_DAMAGE_BOSS = 5;
 export const BUFA_DURATION = 50;
 export const BUFA_ACTIVE_START = 12;
 export const BUFA_RENDER_SCALE = 2;
+export const BUFA_PLAYER_RENDER_SCALE = BUFA_RENDER_SCALE * 2;
+export const BUFA_SMOKE_RENDER_SCALE = BUFA_RENDER_SCALE;
 export const BUFA_HITBOX_SCALE = 2;
 export const HITSTOP_FRAMES = 4;
 export const KNOCKBACK_DECAY = 0.82;
@@ -134,6 +136,10 @@ export const rng = (a: number, b: number) => Math.random() * (b - a) + a;
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 export const clampY = (y: number) => clamp(y, WORLD_MIN_Y, WORLD_MAX_Y);
 export const clampLevelY = clampY;
+export const clampEntityY = <T extends { y: number }>(entity: T) => {
+  entity.y = clampY(entity.y);
+  return entity;
+};
 let _id = 0;
 export const uid = () => `u${++_id}`;
 export const resetUid = () => { _id = 0; };
@@ -246,7 +252,7 @@ export function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isH
   const shO = clamp(0.5 - jumpZ / 200, 0.1, 0.5);
   const eatBob = isEating ? Math.sin(frame * 0.45) * 2 : 0;
   const hurtOpacity = isHurt ? (frameToggle(frame, 3) ? 0.4 : 0.9) : 1;
-  const bufaScale = isBuffa ? BUFA_RENDER_SCALE : 1;
+  const bufaScale = isBuffa ? BUFA_PLAYER_RENDER_SCALE : 1;
 
   return (
     <div style={{ transform: `${flip} scaleX(${sx}) scaleY(${sy})`, transformOrigin: 'bottom center', position: 'relative', width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, transition: 'transform 0.04s' }}>
@@ -322,7 +328,7 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
   return (<>{particles.map(p => { 
     const alpha = p.life / p.startLife; 
     const sx = p.x - cam; 
-    const renderedSize = p.type === 'smoke' ? p.size * BUFA_RENDER_SCALE : p.size;
+    const renderedSize = p.type === 'smoke' ? p.size * BUFA_SMOKE_RENDER_SCALE : p.size;
     const halfSize = renderedSize / 2;
     const edgeMargin = Math.max(60, halfSize + 10);
     
@@ -679,6 +685,8 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
   const davisRef = useRef<Davisaum>({ ...DEFAULT_DAVIS });
   const keysRef = useRef<Record<string, boolean>>({});
   const frameRef = useRef(0);
+  const animationTimeRef = useRef(0);
+  const lastFrameTimeRef = useRef<number | null>(null);
   const spawnTimerRef = useRef(0);
   const cameraRef = useRef(0);
   const bossSpawned = useRef(false);
@@ -704,6 +712,8 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
     davisRef.current = { ...DEFAULT_DAVIS };
     keysRef.current = {};
     frameRef.current = 0;
+    animationTimeRef.current = 0;
+    lastFrameTimeRef.current = null;
     spawnTimerRef.current = 0;
     cameraRef.current = 0;
     bossSpawned.current = false;
@@ -746,16 +756,24 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
   useEffect(() => {
     if (dead) return;
     let animId: number;
-    const loop = () => {
-      const p = playerRef.current; const k = keysRef.current; const f = ++frameRef.current;
+    const loop = (timestamp: number) => {
+      const p = playerRef.current; const k = keysRef.current; const f = frameRef.current;
       const dav = davisRef.current; const enemies = enemiesRef.current;
       const particles = particlesRef.current; const texts = textsRef.current;
+
+      if (lastFrameTimeRef.current === null) {
+        lastFrameTimeRef.current = timestamp;
+      }
+      const deltaMs = Math.min(100, timestamp - lastFrameTimeRef.current);
+      lastFrameTimeRef.current = timestamp;
+      animationTimeRef.current += deltaMs;
+      const animationFrame = Math.floor(animationTimeRef.current / (1000 / 60));
       
-      if (p.hitstop > 0) { p.hitstop--; setFrameTick(f); animId = requestAnimationFrame(loop); return; }
+      if (p.hitstop > 0) { p.hitstop--; setFrameTick(animationFrame); animId = requestAnimationFrame(loop); return; }
 
       updateIdleEating(p, k, particles, texts, f);
       updatePlayerMovement(p, k);
-      p.y = clampY(p.y);
+      clampEntityY(p);
       updatePlayerJump(p, k, particles);
       
       // LOGICA DA BUFA CELESTE: Fumaça visual
@@ -766,14 +784,14 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       cameraRef.current += (clamp(p.x - BASE_W / 2, 0, WORLD_W - BASE_W) - cameraRef.current) * 0.07;
       updatePlayerAttacks(p, k, enemies, screenShakeRef);
       updateDavisAI(dav, p, enemies, foodRef.current, f);
-      dav.y = clampY(dav.y);
+      clampEntityY(dav);
 
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         if (e.hurtTimer > 0) {
           e.hurtTimer--;
           if (e.hurtTimer <= 0) e.hurt = false;
-          e.y = clampY(e.y);
+          clampEntityY(e);
           continue;
         }
 
@@ -783,7 +801,7 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
         else if (e.type === 'furio') stateResult = updateFurioAI(e, p, dav, particles, texts, f, screenShakeRef);
         else stateResult = updateBasicEnemyAI(e, p, particles, texts, f);
 
-        e.y = clampY(e.y);
+        clampEntityY(e);
 
         if (stateResult === 'dead') { setDead(true); cfgRef.current.onGameOver(scoreRef.current); return; }
 
@@ -812,7 +830,8 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
 
       if (screenShakeRef.current > 0) screenShakeRef.current *= 0.9;
       updateParticlesAndTexts(particles, texts, f);
-      setFrameTick(f);
+      frameRef.current = f + 1;
+      setFrameTick(animationFrame);
       animId = requestAnimationFrame(loop);
     };
     animId = requestAnimationFrame(loop);
