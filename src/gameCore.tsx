@@ -393,9 +393,18 @@ export const TouchDpad = React.memo(function TouchDpad({ keysRef }: { keysRef: R
     onPointerLeave: (e: React.PointerEvent) => { e.preventDefault(); keysRef.current[k] = false; },
     onPointerCancel: (e: React.PointerEvent) => { e.preventDefault(); keysRef.current[k] = false; },
   });
-  const S: React.CSSProperties = { width: 52, height: 52, background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.2)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', touchAction: 'none' };
+  
+  const S: React.CSSProperties = { 
+    width: 45, height: 45, // Tamanho reduzido
+    background: 'rgba(255,255,255,0.05)', 
+    border: '2px solid rgba(255,255,255,0.15)', 
+    borderRadius: 12, 
+    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+    color: 'rgba(255,255,255,0.7)', fontSize: 18, touchAction: 'none' 
+  };
+  
   return (
-    <div style={{ position: 'absolute', bottom: 14, left: 14, zIndex: 10020, display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gap: 2 }}>
+    <div style={{ position: 'absolute', bottom: 15, left: 15, zIndex: 10020, display: 'grid', gridTemplateColumns: 'repeat(3, 45px)', gap: 6 }}>
       <div /><div style={S} {...h('arrowup')}>▲</div><div />
       <div style={S} {...h('arrowleft')}>◀</div><div /><div style={S} {...h('arrowright')}>▶</div>
       <div /><div style={S} {...h('arrowdown')}>▼</div><div />
@@ -409,16 +418,37 @@ export const TouchActions = React.memo(function TouchActions({ keysRef }: { keys
     onPointerUp: (e: React.PointerEvent) => { e.preventDefault(); keysRef.current[k] = false; },
     onPointerLeave: (e: React.PointerEvent) => { e.preventDefault(); keysRef.current[k] = false; },
   });
-  const C = (color: string): React.CSSProperties => ({ width: 66, height: 66, background: `${color}33`, border: `2px solid ${color}66`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: color, touchAction: 'none' });
+  
+  const C = (color: string): React.CSSProperties => ({ 
+    width: 60, height: 60, // Tamanho reduzido
+    background: `${color}1A`,
+    border: `2px solid ${color}80`,
+    borderRadius: '50%', 
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+    color: color, touchAction: 'none', position: 'absolute' 
+  });
+
   return (
-    <div style={{ position: 'absolute', bottom: 14, right: 14, zIndex: 10020, display: 'flex', gap: 10 }}>
-      <div style={C('#3498db')} {...h('z')}>PULO</div>
-      <div style={C('#e74c3c')} {...h('x')}>SOCO</div>
-      <div style={C('#2ecc71')} {...h('c')}>BUFA</div>
+    <div style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 10020, width: 130, height: 120 }}>
+      {/* PULO */}
+      <div style={{ ...C('#3498db'), top: 0, left: 35 }} {...h('z')}>
+        <span style={{ fontSize: 11, fontWeight: 'bold' }}>PULO</span>
+      </div>
+      
+      {/* SOCO */}
+      <div style={{ ...C('#e74c3c'), bottom: 0, left: 0 }} {...h('x')}>
+        <span style={{ fontSize: 18, marginBottom: -2 }}>👊</span>
+        <span style={{ fontSize: 8, fontWeight: 'bold' }}>SOCO</span>
+      </div>
+      
+      {/* BUFA */}
+      <div style={{ ...C('#2ecc71'), bottom: 0, right: 0 }} {...h('c')}>
+        <span style={{ fontSize: 18, marginBottom: -2 }}>💨</span>
+        <span style={{ fontSize: 8, fontWeight: 'bold' }}>BUFA</span>
+      </div>
     </div>
   );
 });
-
 // ─────────────────────────────────────────────────────
 //  HUD & TELAS
 // ─────────────────────────────────────────────────────
