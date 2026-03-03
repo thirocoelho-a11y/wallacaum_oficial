@@ -37,6 +37,7 @@ export const BUFA_DAMAGE_NORMAL = 3;
 export const BUFA_DAMAGE_BOSS = 5;
 export const BUFA_DURATION = 50;
 export const BUFA_ACTIVE_START = 12;
+export const BUFA_CELESTE_SIZE_MULTIPLIER = 2;
 export const HITSTOP_FRAMES = 4;
 export const KNOCKBACK_DECAY = 0.82;
 export const COMBO_TIMEOUT = 90;
@@ -149,6 +150,7 @@ export function spawnParticles(arr: Particle[], count: number, x: number, y: num
 export function spawnCelestialSmoke(particles: Particle[], x: number, y: number) {
   for (let i = 0; i < 2; i++) {
     const life = rng(1.2, 1.8);
+    const baseSize = rng(6, 10) * BUFA_CELESTE_SIZE_MULTIPLIER;
     particles.push({
       id: Math.random(),
       x: x + rng(-15, 15),
@@ -158,8 +160,8 @@ export function spawnCelestialSmoke(particles: Particle[], x: number, y: number)
       life: life,
       startLife: life,
       color: CELESTIAL_SMOKE_COLORS[Math.floor(Math.random() * CELESTIAL_SMOKE_COLORS.length)],
-      size: rng(6, 10),
-      startSize: rng(6, 10),
+      size: baseSize,
+      startSize: baseSize,
       type: 'smoke'
     });
   }
@@ -568,7 +570,7 @@ export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _tex
     p.combo++; p.comboTimer = COMBO_TIMEOUT; playSFX('hit');
     spawnParticles(particles, 5, e.x, e.y - 30, '#f1c40f', 'spark');
   }
-  if (p.buffing && p.buffTimer < (BUFA_DURATION - BUFA_ACTIVE_START) && dx < BUFA_RANGE && dy < BUFA_DEPTH && !e.hitThisSwing) {
+  if (p.buffing && p.buffTimer < (BUFA_DURATION - BUFA_ACTIVE_START) && dx < BUFA_RANGE * BUFA_CELESTE_SIZE_MULTIPLIER && dy < BUFA_DEPTH * BUFA_CELESTE_SIZE_MULTIPLIER && !e.hitThisSwing) {
     e.hitThisSwing = true; e.hp -= BUFA_DAMAGE_NORMAL; e.hurt = true; e.hurtTimer = 15;
     p.combo++; p.comboTimer = COMBO_TIMEOUT;
     spawnParticles(particles, 8, e.x, e.y - 30, '#2ecc71', 'smoke');
