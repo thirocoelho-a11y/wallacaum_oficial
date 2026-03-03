@@ -23,12 +23,20 @@ export type SceneEntity =
   | { key: string; type: 'food'; y: number; data: FoodItem };
 
 export function buildSortedSceneEntities(player: Player, davisaum: Davisaum, enemies: Enemy[], food: FoodItem[]): SceneEntity[] {
-  const entities: SceneEntity[] = [
-    { key: 'player', type: 'player' as const, y: player.y, data: player },
-    { key: 'davisaum', type: 'davisaum' as const, y: davisaum.y, data: davisaum },
-    ...enemies.map((enemy) => ({ key: enemy.id, type: 'enemy' as const, y: enemy.y, data: enemy })),
-    ...food.map((item) => ({ key: item.id, type: 'food' as const, y: item.y, data: item })),
-  ];
+  const entities: SceneEntity[] = new Array(2 + enemies.length + food.length);
+  let idx = 0;
+  entities[idx++] = { key: 'player', type: 'player', y: player.y, data: player };
+  entities[idx++] = { key: 'davisaum', type: 'davisaum', y: davisaum.y, data: davisaum };
+
+  for (let i = 0; i < enemies.length; i++) {
+    const enemy = enemies[i];
+    entities[idx++] = { key: enemy.id, type: 'enemy', y: enemy.y, data: enemy };
+  }
+
+  for (let i = 0; i < food.length; i++) {
+    const item = food[i];
+    entities[idx++] = { key: item.id, type: 'food', y: item.y, data: item };
+  }
 
   return entities.sort((a, b) => a.y - b.y);
 }
@@ -69,6 +77,7 @@ export function renderSceneEntity(entity: SceneEntity, cam: number, frame: numbe
           jumpZ={player.z || 0}
           landSquash={player.landSquash}
           combo={player.combo}
+          frame={frame}
         />
       </div>
     );
