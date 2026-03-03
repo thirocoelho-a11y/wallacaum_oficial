@@ -25,17 +25,17 @@ export default function App() {
     return () => { window.removeEventListener('resize', calc); window.removeEventListener('orientationchange', oc); };
   }, []);
 
-  // ── Música ──
+  // ── Música (VOLUME REDUZIDO PARA 15%) ──
   const musicRef = useRef<HTMLAudioElement | null>(null);
-  useEffect(() => { const a = new Audio(MUSICA_SPRITE); a.loop = true; a.volume = 0.5; a.preload = 'auto'; musicRef.current = a; return () => { a.pause(); a.src = ''; }; }, []);
+  useEffect(() => { const a = new Audio(MUSICA_SPRITE); a.loop = true; a.volume = 0.15; a.preload = 'auto'; musicRef.current = a; return () => { a.pause(); a.src = ''; }; }, []);
   
   useEffect(() => {
     const a = musicRef.current; if (!a) return;
-    if (screen === 'fase1' || screen === 'fase2') { a.volume = 0.5; a.play().catch(() => {}); }
-    else if (screen === 'gameover') { let v = a.volume; const f = setInterval(() => { v -= 0.05; if (v <= 0) { clearInterval(f); a.pause(); a.volume = 0.5; } else a.volume = v; }, 50); return () => clearInterval(f); }
-    else if (screen === 'victory') a.volume = 0.25;
-    else if (screen === 'phase_transition') a.volume = 0.3;
-    else { a.pause(); a.currentTime = 0; a.volume = 0.5; }
+    if (screen === 'fase1' || screen === 'fase2') { a.volume = 0.15; a.play().catch(() => {}); }
+    else if (screen === 'gameover') { let v = a.volume; const f = setInterval(() => { v -= 0.02; if (v <= 0) { clearInterval(f); a.pause(); a.volume = 0.15; } else a.volume = v; }, 50); return () => clearInterval(f); }
+    else if (screen === 'victory') a.volume = 0.08;
+    else if (screen === 'phase_transition') a.volume = 0.1;
+    else { a.pause(); a.currentTime = 0; a.volume = 0.15; }
   }, [screen]);
 
   // ── Aqui o Mudo controla tanto a música quanto os efeitos sonoros ──
