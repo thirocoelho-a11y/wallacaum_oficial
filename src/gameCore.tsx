@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { playSFX } from './sfx';
 import { WALLACAUM_SPRITES, DAVISAUM_SPRITES, INIMIGOS_SPRITES } from './sprites';
 import { FASE2_SPRITES } from './spritesFase2';
+import { BUFA_SPRITES } from './BufaSprites';
 
 // ─────────────────────────────────────────────────────
 //  CONSTANTES
@@ -311,29 +312,53 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
   return (<>{particles.map(p => { 
     const alpha = p.life / p.startLife; 
     const sx = p.x - cam; 
-    if (sx < -40 || sx > BASE_W + 40) return null; 
+    
+    // Margem de segurança aumentada para 60px para evitar que sprites grandes sumam na borda
+    if (sx < -60 || sx > BASE_W + 60) return null; 
 
+    // Efeito 1: Anel de explosão
     if (p.type === 'ring') { 
       const sc = 1 + (1 - alpha) * 2; 
       return <div key={p.id} style={{ position: 'absolute', left: 0, top: 0, transform: `translate3d(${sx - 20}px, ${p.y - 20}px, 0) scale(${sc})`, width: 40, height: 40, borderRadius: '50%', border: `3px solid ${p.color}`, opacity: alpha * 0.6, pointerEvents: 'none', zIndex: 9998 }} />; 
     } 
 
+    // Efeito 2: A Bufa Celeste Animada (CÓDIGO NOVO AQUI)
     if (p.type === 'smoke') {
+      const lifeRatio = p.life / p.startLife;
+      
+      let currentSprite = BUFA_SPRITES.FIM;
+      if (lifeRatio > 0.66) {
+        currentSprite = BUFA_SPRITES.INICIO;
+      } else if (lifeRatio > 0.33) {
+        currentSprite = BUFA_SPRITES.MEIO;
+      }
+
       return (
-        <div key={p.id} style={{ 
-          position: 'absolute', left: 0, top: 0, 
-          transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0)`, 
-          width: p.size, height: p.size, 
-          background: p.color, borderRadius: '2px', opacity: alpha, 
-          boxShadow: `0 0 ${p.size}px ${p.color}`, pointerEvents: 'none', zIndex: 9997 
-        }} />
+        <img 
+          key={p.id}
+          src={currentSprite}
+          alt="bufa"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0)`,
+            width: p.size,
+            height: p.size,
+            opacity: alpha,
+            imageRendering: 'pixelated', // Mantém o visual retro
+            pointerEvents: 'none',
+            zIndex: 9997 
+          }}
+        />
       );
     }
     
+    // Efeito 3: Faíscas Padrão
     return (
       <div key={p.id} style={{ 
         position: 'absolute', left: 0, top: 0, 
-        transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0)`, 
+        transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0) ${p.type === 'spark' ? `rotate(${p.vx * 20}deg)` : ''}`, 
         width: p.size, height: p.size, background: p.color, 
         borderRadius: p.type === 'spark' ? '1px' : '50%', opacity: alpha, pointerEvents: 'none', zIndex: 9998 
       }} />
@@ -702,3 +727,4 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
     cam: cameraRef.current, shake: screenShakeRef.current, score, bossEnemy: enemiesRef.current.find(e => isBossType(e.type))
   };
 }
+
