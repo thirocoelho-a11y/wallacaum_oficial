@@ -147,7 +147,6 @@ export function spawnParticles(arr: Particle[], count: number, x: number, y: num
 
 // NOVA FUNÇÃO: Gera a fumaça da Bufa Celeste
 export function spawnCelestialSmoke(particles: Particle[], x: number, y: number) {
-  const colors = ['#00f2ff', '#2ecc71', '#a2ffd1', '#0077ff'];
   for (let i = 0; i < 2; i++) {
     const life = rng(1.2, 1.8);
     particles.push({
@@ -158,7 +157,7 @@ export function spawnCelestialSmoke(particles: Particle[], x: number, y: number)
       vy: rng(-1.2, -0.6),
       life: life,
       startLife: life,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      color: CELESTIAL_SMOKE_COLORS[Math.floor(Math.random() * CELESTIAL_SMOKE_COLORS.length)],
       size: rng(6, 10),
       startSize: rng(6, 10),
       type: 'smoke'
@@ -169,15 +168,15 @@ export function spawnCelestialSmoke(particles: Particle[], x: number, y: number)
 // ─────────────────────────────────────────────────────
 //  SPRITES helpers
 // ─────────────────────────────────────────────────────
-export function getEnemySprite(type: EnemyType, isWalking: boolean, isPunching: boolean, isShouting: boolean, isSuper = false, isCharging = false) {
+export function getEnemySprite(type: EnemyType, isWalking: boolean, isPunching: boolean, isShouting: boolean, frame: number, isSuper = false, isCharging = false) {
   if (type === 'seguranca') {
     if (isPunching) return FASE2_SPRITES.operario_socando;
-    if (isWalking) return Math.floor(Date.now() / 200) % 2 === 0 ? FASE2_SPRITES.operario_andando1 : FASE2_SPRITES.operario_andando2;
+    if (isWalking) return frameToggle(frame, 12) ? FASE2_SPRITES.operario_andando1 : FASE2_SPRITES.operario_andando2;
     return FASE2_SPRITES.operario_parado;
   }
   if (type === 'cientista') {
     if (isPunching) return FASE2_SPRITES.cientista_socando;
-    if (isWalking) return Math.floor(Date.now() / 160) % 2 === 0 ? FASE2_SPRITES.cientista_andando1 : FASE2_SPRITES.cientista_andando2;
+    if (isWalking) return frameToggle(frame, 10) ? FASE2_SPRITES.cientista_andando1 : FASE2_SPRITES.cientista_andando2;
     return FASE2_SPRITES.cientista_parado;
   }
   if (type === 'furio') {
@@ -188,22 +187,22 @@ export function getEnemySprite(type: EnemyType, isWalking: boolean, isPunching: 
     }
     if (isCharging || isShouting) return FASE2_SPRITES.furia_carga;
     if (isPunching) return FASE2_SPRITES.furia_socando;
-    if (isWalking) return Math.floor(Date.now() / 180) % 2 === 0 ? FASE2_SPRITES.furia_andando1 : FASE2_SPRITES.furia_andando2;
+    if (isWalking) return frameToggle(frame, 11) ? FASE2_SPRITES.furia_andando1 : FASE2_SPRITES.furia_andando2;
     return FASE2_SPRITES.furia_parado;
   }
   if (type === 'suka') {
     if (isShouting) return INIMIGOS_SPRITES.suka_gritando;
     if (isPunching) return INIMIGOS_SPRITES.suka_socando;
-    if (isWalking) return Math.floor(Date.now() / 200) % 2 === 0 ? INIMIGOS_SPRITES.suka_andando : INIMIGOS_SPRITES.suka_parada;
+    if (isWalking) return frameToggle(frame, 12) ? INIMIGOS_SPRITES.suka_andando : INIMIGOS_SPRITES.suka_parada;
     return INIMIGOS_SPRITES.suka_parada;
   }
   if (type === 'fast') {
     if (isPunching) return INIMIGOS_SPRITES.capanga_preto_socando;
-    if (isWalking) return Math.floor(Date.now() / 180) % 2 === 0 ? INIMIGOS_SPRITES.capanga_preto_andando : INIMIGOS_SPRITES.capanga_preto_parado;
+    if (isWalking) return frameToggle(frame, 11) ? INIMIGOS_SPRITES.capanga_preto_andando : INIMIGOS_SPRITES.capanga_preto_parado;
     return INIMIGOS_SPRITES.capanga_preto_parado;
   }
   if (isPunching) return INIMIGOS_SPRITES.capanga_loiro_socando;
-  if (isWalking) return Math.floor(Date.now() / 200) % 2 === 0 ? INIMIGOS_SPRITES.capanga_loiro_andando : INIMIGOS_SPRITES.capanga_loiro_parado;
+  if (isWalking) return frameToggle(frame, 12) ? INIMIGOS_SPRITES.capanga_loiro_andando : INIMIGOS_SPRITES.capanga_loiro_parado;
   return INIMIGOS_SPRITES.capanga_loiro_parado;
 }
 
@@ -218,8 +217,8 @@ export function isBossType(type: EnemyType) { return type === 'suka' || type ===
 //  COMPONENTES VISUAIS
 // ─────────────────────────────────────────────────────
 
-export function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isHurt, isEating, jumpZ, landSquash, combo }: {
-  direction: string; isWalking: boolean; isAttacking: boolean; isBuffa: boolean; isHurt: boolean; isEating: boolean; jumpZ: number; landSquash: number; combo: number;
+export function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isHurt, isEating, jumpZ, landSquash, combo, frame }: {
+  direction: string; isWalking: boolean; isAttacking: boolean; isBuffa: boolean; isHurt: boolean; isEating: boolean; jumpZ: number; landSquash: number; combo: number; frame: number;
 }) {
   const flip = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
   let spr = WALLACAUM_SPRITES.parado;
@@ -227,7 +226,7 @@ export function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isH
   else if (isBuffa) spr = WALLACAUM_SPRITES.bufa;
   else if (isAttacking) spr = WALLACAUM_SPRITES.soco;
   else if (jumpZ > 0) spr = WALLACAUM_SPRITES.pulando;
-  else if (isWalking) spr = Math.floor(Date.now() / 140) % 2 === 0 ? WALLACAUM_SPRITES.walk1 : WALLACAUM_SPRITES.walk2;
+  else if (isWalking) spr = frameToggle(frame, 9) ? WALLACAUM_SPRITES.walk1 : WALLACAUM_SPRITES.walk2;
   else if (isEating) spr = WALLACAUM_SPRITES.comendo;
 
   let sx = 1, sy = 1;
@@ -237,11 +236,12 @@ export function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isH
   const flt = isHurt ? 'drop-shadow(0 0 12px rgba(255,50,50,0.9)) brightness(1.8) sepia(1)' : 'drop-shadow(2px 3px 0px rgba(0,0,0,0.55))';
   const shS = clamp(1 - jumpZ / 120, 0.3, 1);
   const shO = clamp(0.5 - jumpZ / 200, 0.1, 0.5);
-  const eatBob = isEating ? Math.sin(Date.now() * 0.008) * 2 : 0;
+  const eatBob = isEating ? Math.sin(frame * 0.45) * 2 : 0;
+  const hurtOpacity = isHurt ? (frameToggle(frame, 3) ? 0.4 : 0.9) : 1;
 
   return (
     <div style={{ transform: `${flip} scaleX(${sx}) scaleY(${sy})`, transformOrigin: 'bottom center', position: 'relative', width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, transition: 'transform 0.04s' }}>
-      <img src={spr} alt="W" style={{ position: 'absolute', left: '50%', transform: `translateX(-50%) translateY(${eatBob}px)`, bottom: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', filter: flt, opacity: isHurt ? (Math.floor(Date.now() / 60) % 2 === 0 ? 0.4 : 0.9) : 1 }} />
+      <img src={spr} alt="W" style={{ position: 'absolute', left: '50%', transform: `translateX(-50%) translateY(${eatBob}px)`, bottom: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', filter: flt, opacity: hurtOpacity }} />
       {isBuffa && <div style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)', color: '#2ecc71', fontWeight: 900, fontSize: 11, letterSpacing: 2, textShadow: '2px 2px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.3s infinite alternate' }}>⚡ BUFA CELESTE! ⚡</div>}
       {combo >= 3 && <div style={{ position: 'absolute', top: -45, left: '50%', transform: 'translateX(-50%)', color: combo >= 8 ? '#e74c3c' : combo >= 5 ? '#f39c12' : '#f1c40f', fontWeight: 900, fontSize: combo >= 8 ? 16 : 12, textShadow: '2px 2px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.2s infinite alternate' }}>{combo}x COMBO!</div>}
       <div style={{ position: 'absolute', bottom: -6, left: '15%', width: `${70 * shS}%`, height: 10, background: `rgba(0,0,0,${shO})`, borderRadius: '50%', transform: `scaleX(${shS})`, transformOrigin: 'center' }} />
@@ -252,7 +252,7 @@ export function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isH
 export function PixelDavisaum({ direction, isWalking, isThrowing, isScared, frame }: { direction: string; isWalking: boolean; isThrowing: boolean; isScared: boolean; frame: number }) {
   const flip = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
   let spr = DAVISAUM_SPRITES.parado;
-  if (isScared) spr = DAVISAUM_SPRITES.medo; else if (isThrowing) spr = DAVISAUM_SPRITES.jogando; else if (isWalking) spr = Math.floor(Date.now() / 200) % 2 === 0 ? DAVISAUM_SPRITES.walk : DAVISAUM_SPRITES.parado;
+  if (isScared) spr = DAVISAUM_SPRITES.medo; else if (isThrowing) spr = DAVISAUM_SPRITES.jogando; else if (isWalking) spr = frameToggle(frame, 12) ? DAVISAUM_SPRITES.walk : DAVISAUM_SPRITES.parado;
   const bob = isWalking && !isScared && !isThrowing ? Math.sin(frame * 0.4) * 2 : 0;
   const sk = isScared ? Math.sin(frame * 1.5) * 2 : 0;
   return (
@@ -271,17 +271,18 @@ export function PixelAgent({ type, direction, isWalking, punchTimer, stateTimer,
   const isPunching = punchTimer > 0; const isShouting = stateTimer > 0;
   const hpPct = hp / maxHp;
   const isSuper = type === 'furio' && hpPct < 0.35;
-  const spr = getEnemySprite(type, isWalking || !!charging, isPunching, isShouting, isSuper, !!charging);
+  const spr = getEnemySprite(type, isWalking || !!charging, isPunching, isShouting, frame, isSuper, !!charging);
   const sprFilter = isHurt ? 'brightness(2.5) sepia(1)' : '';
   const visualScale = type === 'furio' ? 1.25 : type === 'suka' ? 1.05 : 1;
   const visualBottom = type === 'furio' ? -4 : 0;
   const bob = isWalking && !isPunching && !isShouting ? Math.sin(frame * 0.3) * 2 : 0;
   const hpColor = type === 'furio' ? `hsl(${hpPct * 30 + 5}, 90%, 50%)` : `hsl(${hpPct * 40}, 75%, 50%)`;
+  const hurtOpacity = isHurt ? (frameToggle(frame, 3) ? 0.5 : 1) : 1;
 
   return (
     <div style={{ transform: `${flip}`, transformOrigin: 'bottom center', position: 'relative', width: 90, height: 95 }}>
       <div style={{ position: 'absolute', bottom: -6, left: 12, width: 56, height: 9, background: 'rgba(0,0,0,0.35)', borderRadius: '50%' }} />
-      <img src={spr} alt="E" style={{ position: 'absolute', bottom: bob + visualBottom, left: '50%', transform: `translateX(-50%) scale(${visualScale})`, transformOrigin: 'bottom center', width: 120, height: 120, objectFit: 'contain', imageRendering: 'pixelated', opacity: isHurt ? (Math.floor(Date.now() / 50) % 2 === 0 ? 0.5 : 1) : 1, filter: sprFilter }} />
+      <img src={spr} alt="E" style={{ position: 'absolute', bottom: bob + visualBottom, left: '50%', transform: `translateX(-50%) scale(${visualScale})`, transformOrigin: 'bottom center', width: 120, height: 120, objectFit: 'contain', imageRendering: 'pixelated', opacity: hurtOpacity, filter: sprFilter }} />
       <div style={{ position: 'absolute', top: -30, left: 5, width: 70, height: 7, background: '#1a1a1a', border: '1.5px solid #333', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ width: `${hpPct * 100}%`, height: '100%', background: hpColor, transition: 'width 0.2s ease-out' }} />
       </div>
@@ -369,7 +370,7 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
 // ─────────────────────────────────────────────────────
 //  TOUCH CONTROLS
 // ─────────────────────────────────────────────────────
-export function TouchDpad({ keysRef }: { keysRef: React.MutableRefObject<Record<string, boolean>> }) {
+export const TouchDpad = React.memo(function TouchDpad({ keysRef }: { keysRef: React.MutableRefObject<Record<string, boolean>> }) {
   const h = (k: string) => ({
     onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); keysRef.current[k] = true; },
     onPointerUp: (e: React.PointerEvent) => { e.preventDefault(); keysRef.current[k] = false; },
@@ -384,9 +385,9 @@ export function TouchDpad({ keysRef }: { keysRef: React.MutableRefObject<Record<
       <div /><div style={S} {...h('arrowdown')}>▼</div><div />
     </div>
   );
-}
+});
 
-export function TouchActions({ keysRef }: { keysRef: React.MutableRefObject<Record<string, boolean>> }) {
+export const TouchActions = React.memo(function TouchActions({ keysRef }: { keysRef: React.MutableRefObject<Record<string, boolean>> }) {
   const h = (k: string) => ({
     onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); e.stopPropagation(); (e.target as HTMLElement).setPointerCapture(e.pointerId); keysRef.current[k] = true; },
     onPointerUp: (e: React.PointerEvent) => { e.preventDefault(); keysRef.current[k] = false; },
@@ -400,12 +401,12 @@ export function TouchActions({ keysRef }: { keysRef: React.MutableRefObject<Reco
       <div style={C('#2ecc71')} {...h('c')}>BUFA</div>
     </div>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────
 //  HUD & TELAS
 // ─────────────────────────────────────────────────────
-export function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
+export const HpBar = React.memo(function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
   const pct = (hp / maxHp) * 100;
   return <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10000, background: 'rgba(0,0,0,0.6)', padding: 5, borderRadius: 5 }}>
     <div style={{ color: '#f1c40f', fontSize: 8 }}>WALLAÇAUM</div>
@@ -413,13 +414,13 @@ export function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
       <div style={{ width: `${pct}%`, height: '100%', background: '#2ecc71' }} />
     </div>
   </div>;
-}
-export function ScoreDisplay({ score, combo, phase }: { score: number; combo: number; phase: number }) {
+});
+export const ScoreDisplay = React.memo(function ScoreDisplay({ score, combo, phase }: { score: number; combo: number; phase: number }) {
   return <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10000, textAlign: 'right', color: '#fff' }}>
     <div style={{ fontSize: 12 }}>{String(score).padStart(6, '0')}</div>
     {combo >= 2 && <div style={{ color: '#f1c40f', fontSize: 8 }}>x{combo} COMBO</div>}
   </div>;
-}
+});
 export function BossHpBar({ enemy }: { enemy: Enemy | undefined }) {
   if (!enemy) return null;
   const pct = (enemy.hp / enemy.maxHp) * 100;
@@ -430,9 +431,9 @@ export function BossHpBar({ enemy }: { enemy: Enemy | undefined }) {
     </div>
   </div>;
 }
-export function MusicButton({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
+export const MusicButton = React.memo(function MusicButton({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
   return <div onClick={onToggle} style={{ position: 'absolute', top: 8, left: 130, zIndex: 10001, cursor: 'pointer' }}>{muted ? '🔇' : '🔊'}</div>;
-}
+});
 
 export function TitleScreen({ onStart }: { onStart: () => void }) {
   return <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -620,6 +621,9 @@ export const GAME_CSS = `
   @keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-40px)}}
   @keyframes pulse{0%{transform:scale(1)}100%{transform:scale(1.1)}}
 `;
+
+const CELESTIAL_SMOKE_COLORS = ['#00f2ff', '#2ecc71', '#a2ffd1', '#0077ff'] as const;
+const frameToggle = (frame: number, step: number) => Math.floor(frame / step) % 2 === 0;
 
 // ─────────────────────────────────────────────────────
 //  MOTOR (useGameEngine)
