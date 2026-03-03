@@ -3,9 +3,10 @@
 // ═══════════════════════════════════════════════════════
 import { CENARIO_FASE2 } from './cenarioFase2';
 import {
-  BASE_W, MAX_HP, FOOD_SIZE, SPRITE_PLAYER_W, SPRITE_PLAYER_OFFSET_Y, SPRITE_DAVIS_OFFSET_Y, SPRITE_ENEMY_OFFSET_Y, rng,
-  PixelWallacaum, PixelDavisaum, PixelAgent, FoodItemComp, FloatingText, ParticleRenderer, TouchDpad, TouchActions, HpBar, ScoreDisplay, BossHpBar, MusicButton, useGameEngine
+  MAX_HP,
+  FloatingText, ParticleRenderer, TouchDpad, TouchActions, HpBar, ScoreDisplay, BossHpBar, MusicButton, useGameEngine
 } from './gameCore';
+import { buildSortedSceneEntities, getShakeOffset, renderSceneEntity } from './phaseEntities';
 
 export interface Fase2Props {
   initialScore: number; 
@@ -29,43 +30,15 @@ export default function Fase2({ initialScore, initialHp, muted, onToggleMute, on
   });
 
   const isMoving = Math.abs(p.vx) > 0.3 || Math.abs(p.vy) > 0.3;
-  const entities = [
-    { key: 'player', type: 'player', y: p.y, data: p },
-    { key: 'davisaum', type: 'davisaum', y: dav.y, data: dav },
-    ...enemies.map(e => ({ key: e.id, type: 'enemy', y: e.y, data: e })),
-    ...food.map(fo => ({ key: fo.id, type: 'food', y: fo.y, data: fo })),
-  ].sort((a, b) => a.y - b.y);
-
-  const shakeX = shake > 0 ? rng(-shake, shake) : 0;
-  const shakeY = shake > 0 ? rng(-shake * 0.6, shake * 0.6) : 0;
+  const entities = buildSortedSceneEntities(p, dav, enemies, food);
+  const { x: shakeX, y: shakeY } = getShakeOffset(shake);
 
   return (
     <>
       <div style={{ position: 'absolute', inset: -4, transform: `translate3d(${shakeX}px, ${shakeY}px, 0)` }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: `url(${CENARIO_FASE2})`, backgroundRepeat: 'repeat-x', backgroundPositionX: -cam, backgroundSize: 'cover', backgroundPositionY: 'bottom' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,20,0.1) 0%, transparent 30%, transparent 80%, rgba(0,0,0,0.15) 100%)', pointerEvents: 'none' }} />
-        {entities.map(ent => {
-          const sx = ent.data.x - cam;
-          if (sx < -120 || sx > BASE_W + 120) return null;
-          
-          if (ent.type === 'player') {
-            const pData = ent.data as any;
-            return <div key="player" style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - SPRITE_PLAYER_W / 2}px, ${pData.y - SPRITE_PLAYER_OFFSET_Y - (pData.z || 0)}px, 0)`, zIndex: Math.floor(pData.y) }}><PixelWallacaum direction={pData.dir} isWalking={isMoving} isAttacking={pData.attacking} isBuffa={pData.buffing} isHurt={pData.hurt} isEating={pData.eating} jumpZ={pData.z || 0} landSquash={pData.landSquash} combo={pData.combo} /></div>;
-          }
-          if (ent.type === 'davisaum') {
-            const dData = ent.data as any;
-            return <div key="davisaum" style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - 45}px, ${dData.y - SPRITE_DAVIS_OFFSET_Y}px, 0)`, zIndex: Math.floor(dData.y) }}><PixelDavisaum direction={dData.dir} isWalking={dData.isWalking} isThrowing={dData.isThrowing} isScared={dData.isScared} frame={frame} /></div>;
-          }
-          if (ent.type === 'enemy') {
-            const eData = ent.data as any;
-            return <div key={ent.key} style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - 45}px, ${eData.y - SPRITE_ENEMY_OFFSET_Y}px, 0)`, zIndex: Math.floor(eData.y) }}><PixelAgent type={eData.type} direction={eData.dir} isWalking={eData.walking} punchTimer={eData.punchTimer} stateTimer={eData.stateTimer} frame={frame} isHurt={eData.hurt} hp={eData.hp} maxHp={eData.maxHp} charging={eData.charging} /></div>;
-          }
-          if (ent.type === 'food') {
-            const fData = ent.data as any;
-            return <div key={ent.key} style={{ position: 'absolute', top: 0, left: 0, transform: `translate3d(${sx - FOOD_SIZE / 2}px, ${fData.y - FOOD_SIZE - 8}px, 0)`, zIndex: Math.floor(fData.y) - 1 }}><FoodItemComp type={fData.type} landed={fData.landed} /></div>;
-          }
-          return null;
-        })}
+        {entities.map((entity) => renderSceneEntity(entity, cam, frame, isMoving))}
         <ParticleRenderer particles={particles} cam={cam} />
         {texts.map(ft => <FloatingText key={ft.id} text={ft.text} x={ft.x - cam - 10} y={ft.y} color={ft.color} size={ft.size} />)}
       </div>
