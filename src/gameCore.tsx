@@ -38,7 +38,8 @@ export const BUFA_DAMAGE_NORMAL = 3;
 export const BUFA_DAMAGE_BOSS = 5;
 export const BUFA_DURATION = 50;
 export const BUFA_ACTIVE_START = 12;
-export const BUFA_CELESTE_SIZE_MULTIPLIER = 2;
+export const BUFA_RENDER_SCALE = 2;
+export const BUFA_HITBOX_SCALE = 2;
 export const HITSTOP_FRAMES = 4;
 export const KNOCKBACK_DECAY = 0.82;
 export const COMBO_TIMEOUT = 90;
@@ -152,7 +153,7 @@ export function spawnParticles(arr: Particle[], count: number, x: number, y: num
 export function spawnCelestialSmoke(particles: Particle[], x: number, y: number) {
   for (let i = 0; i < 2; i++) {
     const life = rng(1.2, 1.8);
-    const baseSize = rng(6, 10) * BUFA_CELESTE_SIZE_MULTIPLIER;
+    const baseSize = rng(6, 10);
     particles.push({
       id: Math.random(),
       x: x + rng(-15, 15),
@@ -242,10 +243,11 @@ export function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isH
   const shO = clamp(0.5 - jumpZ / 200, 0.1, 0.5);
   const eatBob = isEating ? Math.sin(frame * 0.45) * 2 : 0;
   const hurtOpacity = isHurt ? (frameToggle(frame, 3) ? 0.4 : 0.9) : 1;
+  const bufaScale = isBuffa ? BUFA_RENDER_SCALE : 1;
 
   return (
     <div style={{ transform: `${flip} scaleX(${sx}) scaleY(${sy})`, transformOrigin: 'bottom center', position: 'relative', width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, transition: 'transform 0.04s' }}>
-      <img src={spr} alt="W" style={{ position: 'absolute', left: '50%', transform: `translateX(-50%) translateY(${eatBob}px)`, bottom: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', filter: flt, opacity: hurtOpacity }} />
+      <img src={spr} alt="W" style={{ position: 'absolute', left: '50%', transform: `translateX(-50%) translateY(${eatBob}px) scale(${bufaScale})`, transformOrigin: 'bottom center', bottom: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', filter: flt, opacity: hurtOpacity }} />
       {isBuffa && <div style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)', color: '#2ecc71', fontWeight: 900, fontSize: 11, letterSpacing: 2, textShadow: '2px 2px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.3s infinite alternate' }}>⚡ BUFA CELESTE! ⚡</div>}
       {combo >= 3 && <div style={{ position: 'absolute', top: -45, left: '50%', transform: 'translateX(-50%)', color: combo >= 8 ? '#e74c3c' : combo >= 5 ? '#f39c12' : '#f1c40f', fontWeight: 900, fontSize: combo >= 8 ? 16 : 12, textShadow: '2px 2px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.2s infinite alternate' }}>{combo}x COMBO!</div>}
       <div style={{ position: 'absolute', bottom: -6, left: '15%', width: `${70 * shS}%`, height: 10, background: `rgba(0,0,0,${shO})`, borderRadius: '50%', transform: `scaleX(${shS})`, transformOrigin: 'center' }} />
@@ -317,9 +319,11 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
   return (<>{particles.map(p => { 
     const alpha = p.life / p.startLife; 
     const sx = p.x - cam; 
+    const renderedSize = p.type === 'smoke' ? p.size * BUFA_RENDER_SCALE : p.size;
+    const halfSize = renderedSize / 2;
+    const edgeMargin = Math.max(60, halfSize + 10);
     
-    // Margem de segurança aumentada para 60px para evitar que sprites grandes sumam na borda
-    if (sx < -60 || sx > BASE_W + 60) return null; 
+    if (sx < -edgeMargin || sx > BASE_W + edgeMargin) return null; 
 
     // Efeito 1: Anel de explosão
     if (p.type === 'ring') { 
@@ -347,9 +351,9 @@ export function ParticleRenderer({ particles, cam }: { particles: Particle[]; ca
             position: 'absolute',
             left: 0,
             top: 0,
-            transform: `translate3d(${sx - p.size / 2}px, ${p.y - p.size / 2}px, 0)`,
-            width: p.size,
-            height: p.size,
+            transform: `translate3d(${sx - halfSize}px, ${p.y - halfSize}px, 0)`,
+            width: renderedSize,
+            height: renderedSize,
             opacity: alpha,
             imageRendering: 'pixelated', // Mantém o visual retro
             pointerEvents: 'none',
@@ -573,7 +577,7 @@ export function checkPlayerHits(e: Enemy, p: Player, particles: Particle[], _tex
     p.combo++; p.comboTimer = COMBO_TIMEOUT; playSFX('hit');
     spawnParticles(particles, 5, e.x, e.y - 30, '#f1c40f', 'spark');
   }
-  if (p.buffing && p.buffTimer < (BUFA_DURATION - BUFA_ACTIVE_START) && dx < BUFA_RANGE * BUFA_CELESTE_SIZE_MULTIPLIER && dy < BUFA_DEPTH * BUFA_CELESTE_SIZE_MULTIPLIER && !e.hitThisSwing) {
+  if (p.buffing && p.buffTimer < (BUFA_DURATION - BUFA_ACTIVE_START) && dx < BUFA_RANGE * BUFA_HITBOX_SCALE && dy < BUFA_DEPTH * BUFA_HITBOX_SCALE && !e.hitThisSwing) {
     e.hitThisSwing = true; e.hp -= BUFA_DAMAGE_NORMAL; e.hurt = true; e.hurtTimer = 15;
     p.combo++; p.comboTimer = COMBO_TIMEOUT;
     spawnParticles(particles, 8, e.x, e.y - 30, '#2ecc71', 'smoke');
