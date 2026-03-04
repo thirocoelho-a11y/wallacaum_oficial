@@ -68,10 +68,11 @@ export default function Fase1({ initialScore, initialHp, muted, onToggleMute, on
       {/* ÁREA DE RENDERIZAÇÃO DO JOGO */}
       <div style={{ position: 'absolute', inset: 0, transform: `translateX(${-cam}px)`, zIndex: 10 }}>
         
-        {/* Entidades renderizadas com Memoização (Sem stuttering) */}
-        <PixelDavisaum direction={dav.dir} isWalking={dav.isWalking} isThrowing={dav.isThrowing} isScared={dav.isScared} frame={frame} />
+        {/* Entidades renderizadas com Memoização e Z-Index dinâmico */}
+        <PixelDavisaum y={dav.y} direction={dav.dir} isWalking={dav.isWalking} isThrowing={dav.isThrowing} isScared={dav.isScared} frame={frame} />
         
         <PixelWallacaum 
+          y={p.y}
           direction={p.dir} isWalking={Math.abs(p.vx) > 0.1} isAttacking={p.attacking} 
           isBuffa={p.buffing} isHurt={p.hurt} isEating={p.eating} 
           jumpZ={p.z} landSquash={p.landSquash} combo={p.combo} frame={frame} 
@@ -79,7 +80,7 @@ export default function Fase1({ initialScore, initialHp, muted, onToggleMute, on
 
         {enemies.map(e => (
           <PixelAgent 
-            key={e.id} type={e.type} direction={e.dir} 
+            key={e.id} y={e.y} type={e.type} direction={e.dir} 
             isWalking={e.walking} punchTimer={e.punchTimer} stateTimer={e.stateTimer} 
             frame={frame} isHurt={e.hurt} hp={e.hp} maxHp={e.maxHp} charging={e.charging} 
           />
