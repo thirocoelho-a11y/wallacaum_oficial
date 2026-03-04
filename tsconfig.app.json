@@ -5,6 +5,7 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "esModuleInterop": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -14,11 +15,19 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path Aliases (Atalhos de importação) */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
+    
+    /* Types (Mantém os tipos globais injetados) */
     "types": ["vite/client", "node"]
   },
   "include": ["src"]
