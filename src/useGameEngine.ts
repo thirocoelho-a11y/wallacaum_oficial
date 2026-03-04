@@ -4,22 +4,52 @@ import { updatePlayer } from './entities/Player';
 import { updateEnemies } from './entities/EnemyAI';
 import type { Player, Enemy } from './types';
 
+// ASSUMINDO QUE O createDefaultPlayer VEM DO PLAYER:
+import { createDefaultPlayer } from './entities/Player'; 
+
 export function useGameEngine(cfg: any) {
   const playerRef = useRef<Player>(createDefaultPlayer());
   const enemiesRef = useRef<Enemy[]>([]);
   const keysRef = useRef<Record<string, boolean>>({});
   
   // Controle de Tempo e Renderização
-  const lastTimeRef = useRef<number>(0);
+  const lastTimeRef = useRef<number | null>(null);
   const accumulatorRef = useRef<number>(0);
   const [renderTick, setRenderTick] = useState(0);
 
+  // 1. CAPTURA DE INPUTS (TECLADO E PERDA DE FOCO)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      keysRef.current[e.key.toLowerCase()] = true;
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keysRef.current[e.key.toLowerCase()] = false;
+    };
+    
+    // Limpa as teclas se o jogador minimizar o jogo ou mudar de aba
+    const handleBlur = () => {
+      keysRef.current = {}; 
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
+
+  // 2. MAIN LOOP FÍSICO
   useEffect(() => {
     let animId: number;
 
     const loop = (timestamp: number) => {
-      // Inicialização do relógio
-      if (!lastTimeRef.current) lastTimeRef.current = timestamp;
+      // Inicialização segura do relógio
+      if (lastTimeRef.current === null) lastTimeRef.current = timestamp;
       
       let deltaTime = timestamp - lastTimeRef.current;
       
@@ -61,6 +91,7 @@ export function useGameEngine(cfg: any) {
   return {
     player: playerRef.current,
     enemies: enemiesRef.current,
-    renderTick
+    renderTick,
+    keysRef // 3. EXPORTADO PARA OS CONTROLOS MOBILE FUNCIONAREM
   };
 }
