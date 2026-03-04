@@ -184,7 +184,7 @@ export function spawnCelestialSmoke(particles: Particle[], x: number, y: number)
     const life = rng(1.5, 2.5);
     const baseSize = rng(35, 55);
     particles.push({
-      id: Math.random(),
+      id: uid(), // FIX: ID gerado corretamente para evitar reflow no React
       x: x + rng(-30, 30),
       y: y + rng(-20, 10),
       vx: rng(-1.5, 1.5),
@@ -243,7 +243,7 @@ export function isBossType(type: EnemyType) { return type === 'suka' || type ===
 //  COMPONENTES VISUAIS (MEMOIZADOS PARA PERFORMANCE)
 // ─────────────────────────────────────────────────────
 
-export const PixelWallacaum = React.memo(function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isHurt, isEating, jumpZ, landSquash, combo, frame }: any) {
+export const PixelWallacaum = React.memo(function PixelWallacaum({ direction, isWalking, isAttacking, isBuffa, isHurt, isEating, jumpZ, landSquash, combo, frame, y }: any) {
   const flip = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
   let spr = WALLACAUM_SPRITES.parado;
   if (isHurt) spr = WALLACAUM_SPRITES.dor;
@@ -264,8 +264,9 @@ export const PixelWallacaum = React.memo(function PixelWallacaum({ direction, is
   const hurtOpacity = isHurt ? (frameToggle(frame, 3) ? 0.4 : 0.9) : 1;
   const bufaScale = isBuffa ? BUFA_PLAYER_RENDER_SCALE : 1;
 
+  // FIX: Z-Index dinâmico para corrigir a perspectiva se 'y' for providenciado
   return (
-    <div style={{ transform: `${flip} scaleX(${sx}) scaleY(${sy})`, transformOrigin: 'bottom center', position: 'absolute', left: 0, top: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, transition: 'transform 0.04s' }}>
+    <div style={{ transform: `${flip} scaleX(${sx}) scaleY(${sy})`, transformOrigin: 'bottom center', position: 'absolute', left: 0, top: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, transition: 'transform 0.04s', zIndex: y ? Math.floor(y) : undefined }}>
       <img src={spr} alt="W" style={{ position: 'absolute', left: '50%', transform: `translateX(-50%) translateY(${eatBob}px) scale(${bufaScale})`, transformOrigin: 'bottom center', bottom: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', filter: flt, opacity: hurtOpacity }} />
       {isBuffa && <div style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)', color: '#2ecc71', fontWeight: 900, fontSize: 11, letterSpacing: 2, textShadow: '2px 2px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.3s infinite alternate' }}>⚡ BUFA CELESTE! ⚡</div>}
       {combo >= 3 && <div style={{ position: 'absolute', top: -45, left: '50%', transform: 'translateX(-50%)', color: combo >= 8 ? '#e74c3c' : combo >= 5 ? '#f39c12' : '#f1c40f', fontWeight: 900, fontSize: combo >= 8 ? 16 : 12, textShadow: '2px 2px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.2s infinite alternate' }}>{combo}x COMBO!</div>}
@@ -274,14 +275,16 @@ export const PixelWallacaum = React.memo(function PixelWallacaum({ direction, is
   );
 });
 
-export const PixelDavisaum = React.memo(function PixelDavisaum({ direction, isWalking, isThrowing, isScared, frame }: any) {
+export const PixelDavisaum = React.memo(function PixelDavisaum({ direction, isWalking, isThrowing, isScared, frame, y }: any) {
   const flip = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
   let spr = DAVISAUM_SPRITES.parado;
   if (isScared) spr = DAVISAUM_SPRITES.medo; else if (isThrowing) spr = DAVISAUM_SPRITES.jogando; else if (isWalking) spr = frameToggle(frame, 12) ? DAVISAUM_SPRITES.walk : DAVISAUM_SPRITES.parado;
   const bob = isWalking && !isScared && !isThrowing ? Math.sin(frame * 0.4) * 2 : 0;
   const sk = isScared ? Math.sin(frame * 1.5) * 2 : 0;
+  
+  // FIX: Z-Index
   return (
-    <div style={{ transform: `${flip} translateX(${sk}px)`, position: 'absolute', width: 90, height: 95 }}>
+    <div style={{ transform: `${flip} translateX(${sk}px)`, position: 'absolute', width: 90, height: 95, zIndex: y ? Math.floor(y) : undefined }}>
       <div style={{ position: 'absolute', bottom: -6, left: 18, width: 54, height: 9, background: 'rgba(0,0,0,0.3)', borderRadius: '50%' }} />
       {isScared && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', fontSize: 14, animation: 'pulse 0.3s infinite alternate' }}>😰</div>}
       <img src={spr} alt="D" style={{ position: 'absolute', bottom: bob, left: '50%', transform: 'translateX(-50%)', width: SPRITE_DAVIS_W, height: 95, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none' }} />
@@ -289,7 +292,7 @@ export const PixelDavisaum = React.memo(function PixelDavisaum({ direction, isWa
   );
 });
 
-export const PixelAgent = React.memo(function PixelAgent({ type, direction, isWalking, punchTimer, stateTimer, frame, isHurt, hp, maxHp, charging }: any) {
+export const PixelAgent = React.memo(function PixelAgent({ type, direction, isWalking, punchTimer, stateTimer, frame, isHurt, hp, maxHp, charging, y }: any) {
   const flip = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
   const isPunching = punchTimer > 0; const isShouting = stateTimer > 0;
   const hpPct = hp / maxHp;
@@ -302,8 +305,9 @@ export const PixelAgent = React.memo(function PixelAgent({ type, direction, isWa
   const hpColor = type === 'furio' ? `hsl(${hpPct * 30 + 5}, 90%, 50%)` : `hsl(${hpPct * 40}, 75%, 50%)`;
   const hurtOpacity = isHurt ? (frameToggle(frame, 3) ? 0.5 : 1) : 1;
 
+  // FIX: Z-Index
   return (
-    <div style={{ transform: `${flip}`, transformOrigin: 'bottom center', position: 'absolute', width: 90, height: 95 }}>
+    <div style={{ transform: `${flip}`, transformOrigin: 'bottom center', position: 'absolute', width: 90, height: 95, zIndex: y ? Math.floor(y) : undefined }}>
       <div style={{ position: 'absolute', bottom: -6, left: 12, width: 56, height: 9, background: 'rgba(0,0,0,0.35)', borderRadius: '50%' }} />
       <img src={spr} alt="E" style={{ position: 'absolute', bottom: bob + visualBottom, left: '50%', transform: `translateX(-50%) scale(${visualScale})`, transformOrigin: 'bottom center', width: 120, height: 120, objectFit: 'contain', imageRendering: 'pixelated', opacity: hurtOpacity, filter: sprFilter }} />
       <div style={{ position: 'absolute', top: -30, left: 5, width: 70, height: 7, background: '#1a1a1a', border: '1.5px solid #333', borderRadius: 3, overflow: 'hidden' }}>
@@ -391,7 +395,6 @@ export const MusicButton = React.memo(function MusicButton({ muted, onToggle }: 
 // ─────────────────────────────────────────────────────
 
 export function updateParticlesAndTexts(particles: Particle[], texts: FloatingTextData[], f: number) {
-  // Limpeza sem splice (evita engasgos de lixo de memória)
   let pAlive = 0;
   for (let i = 0; i < particles.length; i++) {
     const pt = particles[i];
@@ -420,7 +423,6 @@ export function updateParticlesAndTexts(particles: Particle[], texts: FloatingTe
   texts.length = tAlive;
 }
 
-// ... Restante das funções de lógica (updatePlayerMovement, checkPlayerHits, etc.) mantidas conforme original ...
 export function updatePlayerMovement(p: Player, k: Record<string, boolean>) {
   let ix = 0, iy = 0;
   if (k['arrowleft'] || k['a']) ix -= 1; if (k['arrowright'] || k['d']) ix += 1;
@@ -646,8 +648,11 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
             else stateResult = updateBasicEnemyAI(e, p);
             clampEntityY(e);
             if (stateResult === 'dead') { setDead(true); cfgRef.current.onGameOver(scoreRef.current); return; }
+            
+            // FIX: Removido setScore síncrono que afetava a renderização aqui
             if (checkPlayerHits(e, p, particles)) {
-              enemies.splice(i, 1); scoreRef.current += 100; setScore(scoreRef.current);
+              enemies.splice(i, 1); 
+              scoreRef.current += 100;
               if (e.type === cfgRef.current.bossType) cfgRef.current.onComplete(scoreRef.current, p.hp);
             }
           }
@@ -674,7 +679,15 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
         physicsUpdated = true;
       }
 
-      if (physicsUpdated) setFrameTick(frameRef.current);
+      // FIX: Atualiza React de forma protegida e agrupada
+      if (physicsUpdated) {
+        setFrameTick(frameRef.current);
+        setScore(prevScore => {
+          if (prevScore !== scoreRef.current) return scoreRef.current;
+          return prevScore;
+        });
+      }
+      
       animId = requestAnimationFrame(loop);
     };
     animId = requestAnimationFrame(loop);
@@ -693,7 +706,7 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
 // ─────────────────────────────────────────────────────
 export const TouchDpad = React.memo(function TouchDpad({ keysRef }: any) {
   const h = (k: string) => ({
-    onPointerDown: (e: any) => { e.preventDefault(); e.stopPropagation(); e.target.setPointerCapture(e.pointerId); keysRef.current[k] = true; },
+    onPointerDown: (e: any) => { e.preventDefault(); e.stopPropagation(); keysRef.current[k] = true; },
     onPointerUp: (e: any) => { e.preventDefault(); keysRef.current[k] = false; },
     onPointerLeave: (e: any) => { e.preventDefault(); keysRef.current[k] = false; },
     onPointerCancel: (e: any) => { e.preventDefault(); keysRef.current[k] = false; },
@@ -710,9 +723,10 @@ export const TouchDpad = React.memo(function TouchDpad({ keysRef }: any) {
 
 export const TouchActions = React.memo(function TouchActions({ keysRef }: any) {
   const h = (k: string) => ({
-    onPointerDown: (e: any) => { e.preventDefault(); e.stopPropagation(); e.target.setPointerCapture(e.pointerId); keysRef.current[k] = true; },
+    onPointerDown: (e: any) => { e.preventDefault(); e.stopPropagation(); keysRef.current[k] = true; },
     onPointerUp: (e: any) => { e.preventDefault(); keysRef.current[k] = false; },
     onPointerLeave: (e: any) => { e.preventDefault(); keysRef.current[k] = false; },
+    onPointerCancel: (e: any) => { e.preventDefault(); keysRef.current[k] = false; },
   });
   const C = (color: string): React.CSSProperties => ({ width: 60, height: 60, background: `${color}1A`, border: `2px solid ${color}80`, borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: color, touchAction: 'none', position: 'absolute' });
   return (
