@@ -1,33 +1,32 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "composite": true,
+    "target": "es2023",
     "useDefineForClassFields": true,
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
+    "lib": ["es2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
     "skipLibCheck": true,
-    "esModuleInterop": true,
 
-    /* Bundler mode */
+    /* Resolução de Módulos (Bundler mode) */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
     "isolatedModules": true,
+    "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "strict": true,
 
-    /* Path Aliases (Atalhos de importação) */
+    /* 1. ADICIONADO: Interoperabilidade para evitar erros do Babel e Node */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* 2. ADICIONADO: Atalhos de importação (Alias @/) */
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
 
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
-    
-    /* Types (Mantém os tipos globais injetados) */
+    /* 3. ADICIONADO: Tipos globais do Vite (para imagens, etc) e Node */
     "types": ["vite/client", "node"]
   },
   "include": ["src"]
