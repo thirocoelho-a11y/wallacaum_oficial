@@ -1,8 +1,11 @@
 // ═══════════════════════════════════════════════════════
-//  screens.tsx — Telas de UI (título, transição, game over, vitória)
+//  screens.tsx — Telas de UI (título, transições, game over, vitória)
 // ═══════════════════════════════════════════════════════
 import React from 'react';
 
+// ─────────────────────────────────────────────────────
+//  Tela Título
+// ─────────────────────────────────────────────────────
 export function TitleScreen({ onStart }: { onStart: () => void }) {
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.95) 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -13,6 +16,9 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
   );
 }
 
+// ─────────────────────────────────────────────────────
+//  Transição Fase 1 → 2 (Suka derrotada, entra na fábrica)
+// ─────────────────────────────────────────────────────
 export function PhaseTransitionScreen({ score, onContinue }: { score: number; onContinue: () => void }) {
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: 'radial-gradient(ellipse at center, rgba(20,10,0,0.9) 0%, rgba(0,0,0,0.98) 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -27,6 +33,148 @@ export function PhaseTransitionScreen({ score, onContinue }: { score: number; on
   );
 }
 
+// ─────────────────────────────────────────────────────
+//  Transição Fase 2 → 3 (Furio derrotado, São Burgão em caos)
+// ─────────────────────────────────────────────────────
+export function Phase2to3TransitionScreen({ score, onContinue }: { score: number; onContinue: () => void }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 99999,
+      background: 'radial-gradient(ellipse at center, rgba(0,10,20,0.9) 0%, rgba(0,0,0,0.98) 100%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {/* Vitória parcial */}
+      <div style={{
+        color: '#2ecc71', fontSize: 12, fontWeight: 900, letterSpacing: 3,
+        textShadow: '0 0 15px rgba(46,204,113,0.5)',
+      }}>
+        ✅ FURIO DERROTADO!
+      </div>
+      <div style={{ color: '#888', fontSize: 9, marginTop: 8 }}>SCORE: {score}</div>
+
+      {/* Separador */}
+      <div style={{
+        width: 300, height: 2, margin: '16px 0',
+        background: 'linear-gradient(90deg, transparent, #95a5a6, transparent)',
+      }} />
+
+      {/* Narrativa */}
+      <div style={{
+        color: '#e74c3c', fontSize: 8, textAlign: 'center', maxWidth: 380,
+        lineHeight: 1.8, textShadow: '1px 1px 0 #000',
+      }}>
+        A fábrica foi destruída... mas os zumbis flatulentos<br />
+        já infestaram São Burgão. As lanchonetes fecharam.<br />
+        O Projeto Bufa Sintética criou algo incontrolável.
+      </div>
+
+      {/* Separador */}
+      <div style={{
+        width: 300, height: 2, margin: '16px 0',
+        background: 'linear-gradient(90deg, transparent, #9b59b6, transparent)',
+      }} />
+
+      {/* Título Fase 3 */}
+      <div style={{
+        fontSize: 18, color: '#9b59b6', fontWeight: 900,
+        fontFamily: '"Press Start 2P", monospace',
+        textShadow: '3px 3px 0 #000, 0 0 20px rgba(155,89,182,0.4)',
+        animation: 'pulse 1s infinite alternate', letterSpacing: 2,
+      }}>
+        FASE 3
+      </div>
+      <div style={{
+        fontSize: 10, color: '#bb88dd', marginTop: 6,
+        letterSpacing: 2, fontWeight: 700, textShadow: '1px 1px 0 #000',
+      }}>
+        TEMPESTADE SOBRE SÃO BURGÃO
+      </div>
+
+      {/* Descrição */}
+      <div style={{
+        color: '#aaa', fontSize: 8, marginTop: 12,
+        textAlign: 'center', maxWidth: 350, lineHeight: 1.6,
+      }}>
+        A Bufa Celeste original alimenta os zumbis em vez de derrotá-los.<br />
+        Use os objetos do ambiente a seu favor.<br />
+        SUKA voltou — com armadura nova.
+      </div>
+
+      {/* Botão */}
+      <div onClick={onContinue} style={{
+        marginTop: 20, padding: '12px 36px',
+        background: 'linear-gradient(180deg, #9b59b6, #7d3c98)',
+        color: '#fff', fontWeight: 900, fontSize: 11,
+        border: '3px solid #bb88dd', borderRadius: 4,
+        cursor: 'pointer', letterSpacing: 2,
+        boxShadow: '0 4px 20px rgba(155,89,182,0.4)',
+        animation: 'pulse 1.2s infinite alternate',
+      }}>
+        ENTRAR EM SÃO BURGÃO
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+//  Transição Fase 3 → 3½ (pós-cutscene horda, moto)
+//  NOTA: a cutscene da horda está dentro do Fase3.tsx.
+//  Esta tela é o "loading" rápido antes da moto.
+// ─────────────────────────────────────────────────────
+export function Phase3toMotoTransitionScreen({ score, onContinue }: { score: number; onContinue: () => void }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 99999,
+      background: 'radial-gradient(ellipse at center, rgba(10,5,0,0.95) 0%, rgba(0,0,0,0.98) 100%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        fontSize: 16, color: '#e67e22', fontWeight: 900,
+        fontFamily: '"Press Start 2P", monospace',
+        textShadow: '3px 3px 0 #000, 0 0 15px rgba(230,126,34,0.4)',
+        animation: 'pulse 0.8s infinite alternate', letterSpacing: 2,
+      }}>
+        🏍️ FUGA!
+      </div>
+      <div style={{
+        fontSize: 9, color: '#f39c12', marginTop: 8,
+        letterSpacing: 2, fontWeight: 700, textShadow: '1px 1px 0 #000',
+      }}>
+        ESTRADA PARA A MONTANHA
+      </div>
+
+      <div style={{
+        width: 300, height: 2, margin: '16px 0',
+        background: 'linear-gradient(90deg, transparent, #e67e22, transparent)',
+      }} />
+
+      <div style={{
+        color: '#aaa', fontSize: 8, textAlign: 'center',
+        maxWidth: 350, lineHeight: 1.8,
+      }}>
+        Davisaum no guidão. Horda nos calcanhares.<br />
+        ↑↓ Mudar faixa &nbsp; Z Pular &nbsp; X Soco lateral<br />
+        Sobreviva até a montanha!
+      </div>
+
+      <div onClick={onContinue} style={{
+        marginTop: 20, padding: '12px 36px',
+        background: 'linear-gradient(180deg, #e67e22, #d35400)',
+        color: '#fff', fontWeight: 900, fontSize: 11,
+        border: '3px solid #f39c12', borderRadius: 4,
+        cursor: 'pointer', letterSpacing: 2,
+        boxShadow: '0 4px 20px rgba(230,126,34,0.4)',
+        animation: 'pulse 1.2s infinite alternate',
+      }}>
+        ACELERAR
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+//  Game Over
+// ─────────────────────────────────────────────────────
 export function GameOverScreen({ score, onRetry }: { score: number; onRetry: () => void }) {
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: 'radial-gradient(ellipse at center, rgba(40,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -37,6 +185,9 @@ export function GameOverScreen({ score, onRetry }: { score: number; onRetry: () 
   );
 }
 
+// ─────────────────────────────────────────────────────
+//  Vitória (será atualizada quando Fase 5 existir)
+// ─────────────────────────────────────────────────────
 export function VictoryScreen({ score, onRetry }: { score: number; onRetry: () => void }) {
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 99999, background: 'radial-gradient(ellipse at center, rgba(0,40,20,0.85) 0%, rgba(0,0,0,0.95) 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>

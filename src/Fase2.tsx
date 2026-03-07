@@ -6,7 +6,7 @@ import PhaseRenderer from './PhaseRenderer';
 
 export interface Fase2Props {
   initialScore: number; initialHp: number; muted: boolean;
-  onToggleMute: () => void; onVictory: (score: number) => void;
+  onToggleMute: () => void; onVictory: (score: number, hp: number) => void;
   onGameOver: (score: number) => void; onRestart: () => void;
 }
 

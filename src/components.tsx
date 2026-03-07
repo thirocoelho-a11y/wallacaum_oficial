@@ -90,20 +90,62 @@ export const PixelWallacaum = React.memo(function PixelWallacaum({ direction, is
   const shO = clamp(0.5 - jumpZ / 200, 0.1, 0.5);
   const eatBob = isEating ? Math.sin(Date.now() * 0.008) * 2 : 0;
 
+  // ── Cálculos do efeito de fumaça da bufa ──
+  const maxT = 50;
+  const progress = isBuffa ? 1 - (buffTimer / maxT) : 0;
+  const smokeScale = 0.4 + progress * 1.2;
+  const smokeOpacity = progress < 0.3 ? progress * 3 : progress > 0.7 ? (1 - progress) * 2.5 : 0.85;
+  const smokeBlur = progress < 0.3 ? 1 : 2 + progress * 4;
+  const smokeRotate = Math.sin(Date.now() * 0.005) * (5 + progress * 10);
+  const driftX = Math.sin(Date.now() * 0.003) * (3 + progress * 8);
+
   return (
     <div style={{ transform: `${flip} scaleX(${sx}) scaleY(${sy})`, transformOrigin: 'bottom center', position: 'relative', width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, transition: 'transform 0.04s' }}>
-      {isBuffa && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: -15, width: 210, height: 180, pointerEvents: 'none', zIndex: -1 }}>
-        <div style={{ position: 'absolute', left: 25, top: 35, width: 100, height: 85, borderRadius: '60% 40% 50% 60%', background: 'radial-gradient(ellipse, rgba(80,220,160,0.5) 0%, rgba(46,204,113,0.2) 40%, transparent 70%)', filter: 'blur(8px)', animation: 'smokeRise 0.6s infinite' }} />
-        <div style={{ position: 'absolute', left: 8, top: 15, width: 120, height: 110, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(46,204,113,0.15) 0%, transparent 70%)', filter: 'blur(12px)', animation: 'pulse 0.2s infinite alternate' }} />
-        <div style={{ position: 'absolute', left: 0, bottom: 8, width: 210, height: 40, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(50,200,130,0.45) 0%, transparent 80%)', filter: 'blur(6px)', animation: 'pulse 0.2s infinite alternate' }} />
+
+      {/* ── Névoa CSS atrás do personagem (4 camadas) ── */}
+      {isBuffa && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: -20, width: 210, height: 180, pointerEvents: 'none', zIndex: -1 }}>
+        {/* Camada 1: névoa base que se espalha no chão */}
+        <div style={{ position: 'absolute', left: 10, bottom: 5, width: 190, height: 60, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(46,204,113,0.35) 0%, rgba(0,206,209,0.15) 50%, transparent 80%)', filter: 'blur(10px)', animation: 'smokeDrift 0.8s infinite ease-in-out' }} />
+        {/* Camada 2: nuvem principal subindo */}
+        <div style={{ position: 'absolute', left: 30, bottom: 15, width: 140, height: 100, borderRadius: '60% 40% 50% 60%', background: 'radial-gradient(ellipse, rgba(80,220,160,0.4) 0%, rgba(0,206,209,0.2) 40%, transparent 70%)', filter: 'blur(8px)', animation: 'smokeExpand 0.7s infinite ease-out' }} />
+        {/* Camada 3: névoa alta dissipando */}
+        <div style={{ position: 'absolute', left: 20, bottom: 30, width: 160, height: 80, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(135,206,235,0.2) 0%, rgba(46,204,113,0.1) 40%, transparent 70%)', filter: 'blur(14px)', animation: 'smokeFade 1s infinite ease-out' }} />
+        {/* Camada 4: brilho central pulsante */}
+        <div style={{ position: 'absolute', left: 60, bottom: 10, width: 80, height: 50, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(72,209,204,0.45) 0%, transparent 70%)', filter: 'blur(6px)', animation: 'pulse 0.25s infinite alternate' }} />
       </div>}
 
+      {/* ── Sprite do personagem ── */}
       <img src={spr} alt="W" style={{ position: 'absolute', left: '50%', transform: `translateX(-50%) translateY(${eatBob}px)`, bottom: 0, width: SPRITE_PLAYER_W, height: SPRITE_PLAYER_H, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', filter: flt, opacity: isHurt ? (Math.floor(Date.now() / 60) % 2 === 0 ? 0.4 : 0.9) : 1, zIndex: 2 }} />
 
+      {/* ── Sprite da bufa com efeito de fumaça dinâmico ── */}
       {isBuffa && bufaEffectSpr && (
-        <img src={bufaEffectSpr} alt="Efeito Bufa" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: '30%', width: 140, height: 140, objectFit: 'contain', imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 1 }} />
+        <div style={{ position: 'absolute', left: '50%', bottom: '-10%', transform: 'translateX(-50%)', width: 160, height: 160, pointerEvents: 'none', zIndex: 1 }}>
+          {/* Sprite principal: cresce, gira, flutua, fica turvo */}
+          <img src={bufaEffectSpr} alt="Bufa" style={{
+            position: 'absolute', left: '50%', bottom: 0,
+            transform: `translateX(-50%) translateX(${driftX}px) scale(${smokeScale}) rotate(${smokeRotate}deg)`,
+            width: 140, height: 140,
+            objectFit: 'contain', imageRendering: 'pixelated',
+            opacity: smokeOpacity,
+            filter: `blur(${smokeBlur}px) drop-shadow(0 0 8px rgba(46,204,113,0.4))`,
+            transition: 'transform 0.08s ease-out, opacity 0.1s',
+            pointerEvents: 'none',
+          }} />
+          {/* Cópia fantasma: mais expandida e transparente, dá volume */}
+          <img src={bufaEffectSpr} alt="" style={{
+            position: 'absolute', left: '50%', bottom: 0,
+            transform: `translateX(-50%) translateX(${-driftX * 0.6}px) scale(${smokeScale * 1.3}) rotate(${-smokeRotate * 0.5}deg)`,
+            width: 140, height: 140,
+            objectFit: 'contain', imageRendering: 'pixelated',
+            opacity: smokeOpacity * 0.3,
+            filter: `blur(${smokeBlur + 4}px)`,
+            pointerEvents: 'none',
+            mixBlendMode: 'screen',
+          }} />
+        </div>
       )}
 
+      {/* ── Efeito de comendo ── */}
       {isEating && <>
         <div style={{ position: 'absolute', top: 30 + Math.sin(Date.now() * 0.01) * 5, right: 15, width: 4, height: 4, background: '#d4a017', borderRadius: '50%', opacity: 0.8, animation: 'crumbFall 0.8s infinite linear' }} />
         <div style={{ position: 'absolute', top: 35 + Math.cos(Date.now() * 0.012) * 4, right: 25, width: 3, height: 3, background: '#c0392b', borderRadius: '50%', opacity: 0.7, animation: 'crumbFall 1.1s 0.3s infinite linear' }} />
@@ -111,9 +153,11 @@ export const PixelWallacaum = React.memo(function PixelWallacaum({ direction, is
         <div style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)', fontSize: 18, animation: 'pulse 0.5s infinite alternate', filter: 'drop-shadow(1px 1px 0 #000)' }}>🍔</div>
       </>}
 
+      {/* ── Textos flutuantes ── */}
       {isBuffa && <div style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)', color: '#2ecc71', fontWeight: 900, fontSize: 11, letterSpacing: 2, textShadow: '2px 2px 0 #000, -1px -1px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.2s infinite alternate', zIndex: 3 }}>⚡ BUFA CELESTE! ⚡</div>}
       {combo >= 3 && <div style={{ position: 'absolute', top: -45, left: '50%', transform: 'translateX(-50%)', color: combo >= 8 ? '#e74c3c' : combo >= 5 ? '#f39c12' : '#f1c40f', fontWeight: 900, fontSize: combo >= 8 ? 16 : 12, textShadow: '2px 2px 0 #000, -1px -1px 0 #000', whiteSpace: 'nowrap', animation: 'pulse 0.2s infinite alternate', zIndex: 3 }}>{combo}x COMBO!</div>}
 
+      {/* ── Sombra no chão ── */}
       <div style={{ position: 'absolute', bottom: -6, left: '15%', width: `${70 * shS}%`, height: 10, background: `rgba(0,0,0,${shO})`, borderRadius: '50%', transform: `scaleX(${shS})`, transformOrigin: 'center' }} />
     </div>
   );
@@ -156,7 +200,7 @@ export const PixelAgent = React.memo(function PixelAgent({ type, direction, isWa
   const isSuper = type === 'furio' && hpPct < 0.35;
   const spr = getEnemySprite(type, isWalking || !!charging, isPunching, isShouting, isSuper, !!charging);
   const sprFilter = isHurt ? 'brightness(2.5) sepia(1) hue-rotate(-50deg) saturate(4)' : '';
-  const visualScale = type === 'furio' ? 1.25 : type === 'suka' ? 1.05 : 1;
+  const visualScale = type === 'furio' ? 1.25 : type === 'suka' ? 0.85 : 1;
   const visualBottom = type === 'furio' ? -4 : 0;
   const bob = isWalking && !isPunching && !isShouting ? Math.sin(frame * 0.3) * 2 : 0;
   const hurtSquash = isHurt ? 'scaleX(1.08) scaleY(0.92)' : '';
