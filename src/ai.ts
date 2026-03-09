@@ -39,8 +39,17 @@ export function updateBasicEnemyAI(
 }
 
 // ─────────────────────────────────────────────────────
-//  SUKA BARULHENTA (Boss Fase 1)
+//  SUKA BARULHENTA (Boss Fase 1) — IA CORRIGIDA
+//
+//  Antes: grito dominava (range 150 cobria tudo), soco nunca disparava.
+//  Agora:
+//    - PERTO (hx < 80):  SOCO (tapa/golpe, dano 15, cooldown curto)
+//    - MÉDIO (80-160):   GRITO SÔNICO (dano 25, cooldown longo, wind-up)
+//    - LONGE (>160):     ANDA em direção ao jogador
+//
+//  Substitua a função updateSukaAI no ai.ts pela versão abaixo.
 // ─────────────────────────────────────────────────────
+
 export function updateSukaAI(
   e: Enemy, p: Player, dav: Davisaum,
   particles: Particle[], texts: FloatingTextData[],
@@ -50,18 +59,47 @@ export function updateSukaAI(
   const hx = Math.abs(dx), hy = Math.abs(dy);
   e.dir = dx > 0 ? 'right' : 'left';
   if (e.punchTimer > 0) e.punchTimer--;
+  if (e.atkCd > 0) e.atkCd--;
 
-  if (hx < 150 && hy < 60 && e.atkCd <= 0) {
-    e.walking = false; e.stateTimer++;
+  // ═══════════════════════════════════════
+  //  SOCO — Range curto (hx < 80)
+  //  Prioridade sobre grito quando perto
+  // ═══════════════════════════════════════
+  if (hx < 80 && hy < 35 && e.atkCd <= 0 && p.invincible <= 0 && p.z < 10) {
+    e.walking = false;
+    e.stateTimer = 0; // Reset do wind-up do grito
+    e.atkCd = 50; // Cooldown curto — pode socar de novo rápido
+    e.punchTimer = 18;
+    p.hp -= 15; p.hurt = true; p.hurtTimer = 15; p.invincible = 30;
+    p.vx = (dx > 0 ? -1 : 1) * 8;
+    p.combo = 0; p.comboTimer = 0;
+    spawnParticles(particles, 5, p.x, p.y - 30 - p.z, '#9b59b6', 'hit', 4, 14, 5);
+    texts.push({ id: uid(), text: '-15', x: p.x, y: p.y - 40 - p.z, color: '#9b59b6', size: 16, t: f });
+    if (p.hp <= 0) return 'dead';
+
+  // ═══════════════════════════════════════
+  //  GRITO SÔNICO — Range médio (80-160)
+  //  Wind-up de 50 frames, depois dispara
+  // ═══════════════════════════════════════
+  } else if (hx >= 70 && hx < 160 && hy < 60 && e.atkCd <= 0) {
+    e.walking = false;
+    e.stateTimer++;
+
+    // Wind-up: aviso visual
     if (e.stateTimer === 1) {
       texts.push({ id: uid(), text: '⚠ CUIDADO!', x: e.x, y: e.y - 70, color: '#e74c3c', size: 14, t: f });
     }
+
+    // Dispara o grito
     if (e.stateTimer > 50) {
       playSFX('shout');
-      e.atkCd = 180; e.stateTimer = 0;
+      e.atkCd = 150; // Cooldown longo pra dar tempo de socar entre gritos
+      e.stateTimer = 0;
       texts.push({ id: uid(), text: 'KRAAAAAHH!!!', x: e.x, y: e.y - 40, color: '#3498db', size: 22, t: f });
       screenShakeRef.current = 12;
       spawnParticles(particles, 6, e.x, e.y - 30, 'rgba(52,152,219,0.6)', 'ring', 8, 25, 10);
+
+      // Dano do grito (range amplo)
       if (hx < 180 && hy < 70 && p.z < 20 && p.invincible <= 0) {
         p.hp -= 25; p.hurt = true; p.hurtTimer = 20; p.invincible = 40;
         p.vx = (dx > 0 ? -1 : 1) * 12;
@@ -72,21 +110,20 @@ export function updateSukaAI(
         if (p.hp <= 0) return 'dead';
       }
     }
+
+  // ═══════════════════════════════════════
+  //  MOVIMENTAÇÃO — Longe ou cooldown ativo
+  // ═══════════════════════════════════════
   } else {
-    e.stateTimer = 0; e.walking = true;
-    if (hx > 70) e.x += Math.sign(dx) * ENEMY_SPEED * 0.8;
+    e.stateTimer = 0;
+    e.walking = true;
+
+    // Anda em direção ao jogador
+    if (hx > 60) e.x += Math.sign(dx) * ENEMY_SPEED * 0.8;
     if (hy > 10) e.y += Math.sign(dy) * ENEMY_SPEED * 0.5;
     e.y = clamp(e.y, FLOOR_MIN, FLOOR_MAX);
-    if (e.atkCd > 0) e.atkCd--;
-    if (hx < 80 && hy < 25 && e.atkCd <= 0 && p.invincible <= 0 && p.z < 10) {
-      e.atkCd = 60; e.punchTimer = 15;
-      p.hp -= 15; p.hurt = true; p.hurtTimer = 15; p.invincible = 30;
-      p.combo = 0; p.comboTimer = 0;
-      spawnParticles(particles, 5, p.x, p.y - 30 - p.z, '#ff4444', 'hit', 3, 14, 5);
-      texts.push({ id: uid(), text: '-15', x: p.x, y: p.y - 40 - p.z, color: '#ff4444', size: 16, t: f });
-      if (p.hp <= 0) return 'dead';
-    }
   }
+
   return 'alive';
 }
 
