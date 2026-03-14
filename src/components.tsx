@@ -11,6 +11,7 @@ import { clamp, rng } from './utils';
 import { WALLACAUM_SPRITES, DAVISAUM_SPRITES, INIMIGOS_SPRITES } from './sprites';
 import { FASE2_SPRITES } from './spritesFase2';
 import { BUFA_SPRITES } from './BufaSprites';
+import { FASE3_SPRITES } from './spritesFase3';
 
 // ─────────────────────────────────────────────────────
 //  Sprite helper (retorna imagem base64 do inimigo)
@@ -45,6 +46,32 @@ function getEnemySprite(
     if (isPunching) return INIMIGOS_SPRITES.suka_socando;
     if (isWalking) return Math.floor(Date.now() / 200) % 2 === 0 ? INIMIGOS_SPRITES.suka_andando : INIMIGOS_SPRITES.suka_parada;
     return INIMIGOS_SPRITES.suka_parada;
+  }
+  // ── Fase 3: Zumbi Flatulento ──
+  if (type === 'zumbi') {
+    if (isPunching) return FASE3_SPRITES.zumbi_gas || FASE3_SPRITES.zumbi_parado;
+    if (isWalking) return Math.floor(Date.now() / 250) % 2 === 0
+      ? (FASE3_SPRITES.zumbi_andando1 || FASE3_SPRITES.zumbi_parado)
+      : (FASE3_SPRITES.zumbi_andando2 || FASE3_SPRITES.zumbi_parado);
+    return FASE3_SPRITES.zumbi_parado;
+  }
+  // ── Fase 3: Zumbi Turbinado ──
+  if (type === 'zumbi_turbo') {
+    if (isPunching) return FASE3_SPRITES.zumbi_turbo_gas || FASE3_SPRITES.zumbi_turbo_parado;
+    if (isWalking) return Math.floor(Date.now() / 200) % 2 === 0
+      ? (FASE3_SPRITES.zumbi_turbo_andando1 || FASE3_SPRITES.zumbi_turbo_parado)
+      : (FASE3_SPRITES.zumbi_turbo_andando2 || FASE3_SPRITES.zumbi_turbo_parado);
+    return FASE3_SPRITES.zumbi_turbo_parado;
+  }
+  // ── Fase 3: Suka Mark II (boss) ──
+  if (type === 'suka_mk2') {
+    if (isCharging) return FASE3_SPRITES.suka_mk2_contra_ataque || FASE3_SPRITES.suka_mk2_parada;
+    if (isShouting) return FASE3_SPRITES.suka_mk2_grito || FASE3_SPRITES.suka_mk2_parada;
+    if (isPunching) return FASE3_SPRITES.suka_mk2_espada || FASE3_SPRITES.suka_mk2_parada;
+    if (isWalking) return Math.floor(Date.now() / 200) % 2 === 0
+      ? (FASE3_SPRITES.suka_mk2_andando1 || FASE3_SPRITES.suka_mk2_parada)
+      : (FASE3_SPRITES.suka_mk2_andando2 || FASE3_SPRITES.suka_mk2_parada);
+    return FASE3_SPRITES.suka_mk2_parada;
   }
   if (type === 'fast') {
     if (isPunching) return INIMIGOS_SPRITES.capanga_preto_socando;
@@ -189,41 +216,82 @@ export const PixelDavisaum = React.memo(function PixelDavisaum({ direction, isWa
 // ─────────────────────────────────────────────────────
 //  PixelAgent (inimigos)
 // ─────────────────────────────────────────────────────
-export const PixelAgent = React.memo(function PixelAgent({ type, direction, isWalking, punchTimer, stateTimer, frame, isHurt, hp, maxHp, charging }: {
+export const PixelAgent = React.memo(function PixelAgent({ type, direction, isWalking, punchTimer, stateTimer, frame, isHurt, hp, maxHp, charging, absorbing, flying, armorFailing }: {
   type: EnemyType; direction: string; isWalking: boolean; punchTimer: number; stateTimer: number;
   frame: number; isHurt: boolean; hp: number; maxHp: number; charging?: boolean;
+  absorbing?: boolean; flying?: boolean; armorFailing?: boolean;
 }) {
   const flip = direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)';
   const isPunching = punchTimer > 0;
   const isShouting = stateTimer > 0;
   const hpPct = hp / maxHp;
   const isSuper = type === 'furio' && hpPct < 0.35;
-  const spr = getEnemySprite(type, isWalking || !!charging, isPunching, isShouting, isSuper, !!charging);
+
+  // ── Sprite: Suka MK2 com estados avançados ──
+  let spr: string;
+  if (type === 'suka_mk2') {
+    if (isHurt) spr = FASE3_SPRITES.suka_mk2_falhando || FASE3_SPRITES.suka_mk2_parada;
+    else if (armorFailing) spr = FASE3_SPRITES.suka_mk2_falhando || FASE3_SPRITES.suka_mk2_parada;
+    else if (flying && charging) spr = FASE3_SPRITES.suka_mk2_mergulho || FASE3_SPRITES.suka_mk2_voando || FASE3_SPRITES.suka_mk2_parada;
+    else if (flying) spr = FASE3_SPRITES.suka_mk2_voando || FASE3_SPRITES.suka_mk2_parada;
+    else if (absorbing) spr = FASE3_SPRITES.suka_mk2_escudo || FASE3_SPRITES.suka_mk2_parada;
+    else spr = getEnemySprite(type, isWalking || !!charging, isPunching, isShouting, false, !!charging);
+  } else if (type === 'zumbi' && isHurt) {
+    spr = FASE3_SPRITES.zumbi_dano || FASE3_SPRITES.zumbi_parado;
+  } else if (type === 'zumbi_turbo' && isHurt) {
+    spr = FASE3_SPRITES.zumbi_turbo_dano || FASE3_SPRITES.zumbi_turbo_parado;
+  } else {
+    spr = getEnemySprite(type, isWalking || !!charging, isPunching, isShouting, isSuper, !!charging);
+  }
+
   const sprFilter = isHurt ? 'brightness(2.5) sepia(1) hue-rotate(-50deg) saturate(4)' : '';
-  const visualScale = type === 'furio' ? 1.25 : type === 'suka' ? 0.85 : 1;
-  const visualBottom = type === 'furio' ? -4 : 0;
+  const visualScale = type === 'furio' ? 1.25 : type === 'suka' ? 0.85
+    : type === 'zumbi_turbo' ? 1.3 : type === 'suka_mk2' ? 1.1 : 1;
+  const visualBottom = type === 'furio' ? -4 : flying ? 20 : 0;
   const bob = isWalking && !isPunching && !isShouting ? Math.sin(frame * 0.3) * 2 : 0;
   const hurtSquash = isHurt ? 'scaleX(1.08) scaleY(0.92)' : '';
   const shakeX = isHurt ? rng(-3, 3) : 0;
-  const hpColor = type === 'furio' ? `hsl(${hpPct * 30 + 5}, 90%, ${40 + hpPct * 15}%)` : type === 'suka' ? `hsl(${280 + hpPct * 20}, 60%, ${45 + hpPct * 15}%)` : `hsl(${hpPct * 40}, 75%, 50%)`;
+  const hpColor = type === 'furio' ? `hsl(${hpPct * 30 + 5}, 90%, ${40 + hpPct * 15}%)`
+    : type === 'suka' ? `hsl(${280 + hpPct * 20}, 60%, ${45 + hpPct * 15}%)`
+    : type === 'suka_mk2' ? `hsl(${270 + hpPct * 20}, 70%, ${40 + hpPct * 15}%)`
+    : (type === 'zumbi' || type === 'zumbi_turbo') ? `hsl(${100 + hpPct * 30}, 70%, ${35 + hpPct * 15}%)`
+    : `hsl(${hpPct * 40}, 75%, 50%)`;
   const chargeGlow = charging ? 'drop-shadow(0 0 15px rgba(255,100,0,0.8)) drop-shadow(0 0 30px rgba(255,50,0,0.4))' : '';
   const superGlow = isSuper && !isHurt ? 'drop-shadow(0 0 10px rgba(80,150,255,0.7)) drop-shadow(0 0 25px rgba(80,100,255,0.3))' : '';
+  const flyGlow = flying && !isHurt ? 'drop-shadow(0 0 10px rgba(153,68,255,0.6))' : '';
+  const absorbGlow = absorbing && !isHurt ? 'drop-shadow(0 0 12px rgba(136,68,255,0.5))' : '';
 
   return (
     <div style={{ transform: `${flip} translateX(${shakeX}px) ${hurtSquash}`, transformOrigin: 'bottom center', transition: 'filter 0.08s', position: 'relative', width: 90, height: 95 }}>
       <div style={{ position: 'absolute', bottom: -6, left: 12, width: 56, height: 9, background: isBossType(type) ? 'rgba(100,20,120,0.4)' : 'rgba(0,0,0,0.35)', borderRadius: '50%' }} />
 
       {type === 'suka' && isShouting && <div style={{ position: 'absolute', bottom: 30, left: direction === 'right' ? 55 : -70, width: 90, height: 90, border: '4px solid rgba(52,152,219,0.5)', borderRadius: '50%', animation: 'sonicWave 0.3s infinite', pointerEvents: 'none' }} />}
+      {type === 'suka_mk2' && isShouting && !absorbing && <div style={{ position: 'absolute', bottom: 30, left: direction === 'right' ? 50 : -75, width: 95, height: 95, border: '4px solid rgba(155,89,182,0.6)', borderRadius: '50%', animation: 'sonicWave 0.3s infinite', pointerEvents: 'none' }} />}
       {type === 'furio' && isShouting && <div style={{ position: 'absolute', bottom: 30, left: direction === 'right' ? 45 : -80, width: 100, height: 100, border: '4px solid rgba(255,80,0,0.6)', borderRadius: '50%', animation: 'sonicWave 0.3s infinite', pointerEvents: 'none' }} />}
       {charging && <div style={{ position: 'absolute', bottom: 0, left: direction === 'right' ? -30 : 35, width: 60, height: 25, background: 'radial-gradient(ellipse, rgba(255,100,0,0.4), transparent)', borderRadius: '50%', filter: 'blur(4px)', animation: 'pulse 0.15s infinite alternate' }} />}
 
-      <img src={spr} alt="E" style={{ position: 'absolute', bottom: bob + visualBottom, left: '50%', transform: `translateX(-50%) scale(${visualScale})`, transformOrigin: 'bottom center', width: 120, height: 120, objectFit: 'contain', imageRendering: 'pixelated', opacity: isHurt ? (Math.floor(Date.now() / 50) % 2 === 0 ? 0.5 : 1) : 1, filter: `${sprFilter} ${chargeGlow} ${superGlow}` }} />
+      <img src={spr} alt="E" style={{ position: 'absolute', bottom: bob + visualBottom, left: '50%', transform: `translateX(-50%) scale(${visualScale})`, transformOrigin: 'bottom center', width: 120, height: 120, objectFit: 'contain', imageRendering: 'pixelated', opacity: isHurt ? (Math.floor(Date.now() / 50) % 2 === 0 ? 0.5 : 1) : 1, filter: `${sprFilter} ${chargeGlow} ${superGlow} ${flyGlow} ${absorbGlow}` }} />
 
       <div style={{ position: 'absolute', top: -30, left: 5, width: 70, height: 7, background: '#1a1a1a', border: '1.5px solid #333', borderRadius: 3, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
         <div style={{ width: `${hpPct * 100}%`, height: '100%', background: `linear-gradient(180deg, ${hpColor}, ${hpColor}dd)`, transition: 'width 0.2s ease-out', boxShadow: hpPct < 0.3 ? `0 0 6px ${hpColor}` : 'none' }} />
       </div>
       {type === 'suka' && <div style={{ position: 'absolute', top: -42, left: '50%', transform: 'translateX(-50%)', color: '#9b59b6', fontWeight: 900, fontSize: 8, textShadow: '1px 1px 0 #000', whiteSpace: 'nowrap' }}>SUKA BARULHENTA</div>}
       {type === 'furio' && <div style={{ position: 'absolute', top: -42, left: '50%', transform: 'translateX(-50%)', color: isSuper ? '#4488ff' : '#ff4500', fontWeight: 900, fontSize: 8, textShadow: '1px 1px 0 #000', whiteSpace: 'nowrap' }}>{isSuper ? '💀 FURIA MÁXIMA!' : '⚡ FURIO'}</div>}
+
+      {/* ── Fase 3: Label Suka MK2 ── */}
+      {type === 'suka_mk2' && <div style={{ position: 'absolute', top: -42, left: '50%', transform: 'translateX(-50%)', color: armorFailing ? '#ff4444' : '#9b59b6', fontWeight: 900, fontSize: 7, textShadow: '1px 1px 0 #000', whiteSpace: 'nowrap', animation: armorFailing ? 'pulse 0.3s infinite alternate' : 'none' }}>{armorFailing ? '⚡ ARMADURA FALHANDO!' : flying ? '🚀 SUKA MARK II' : '🤖 SUKA MARK II'}</div>}
+
+      {/* ── Fase 3: Escudo de absorção (Suka MK2) ── */}
+      {absorbing && type === 'suka_mk2' && <div style={{ position: 'absolute', inset: -12, borderRadius: '50%', border: '3px solid rgba(136,68,255,0.5)', background: 'radial-gradient(circle, rgba(136,68,255,0.15), transparent 70%)', animation: 'pulse 0.5s infinite alternate', pointerEvents: 'none' }} />}
+
+      {/* ── Fase 3: Faíscas da armadura falhando ── */}
+      {armorFailing && type === 'suka_mk2' && frame % 8 < 4 && <div style={{ position: 'absolute', top: 10 + Math.sin(frame * 0.5) * 15, left: 20 + Math.cos(frame * 0.7) * 20, width: 6, height: 6, borderRadius: '50%', background: '#aa88ff', boxShadow: '0 0 8px #aa88ff', pointerEvents: 'none' }} />}
+
+      {/* ── Fase 3: Propulsão do voo ── */}
+      {flying && type === 'suka_mk2' && <div style={{ position: 'absolute', bottom: -5, left: '50%', transform: 'translateX(-50%)', width: 30, height: 15, background: 'radial-gradient(ellipse, rgba(153,68,255,0.5), transparent 70%)', filter: 'blur(3px)', animation: 'pulse 0.15s infinite alternate', pointerEvents: 'none' }} />}
+
+      {/* ── Fase 3: Nuvem de gás do zumbi ── */}
+      {(type === 'zumbi' || type === 'zumbi_turbo') && <div style={{ position: 'absolute', bottom: 15, left: -10, width: type === 'zumbi_turbo' ? 110 : 80, height: type === 'zumbi_turbo' ? 50 : 35, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(150,255,150,0.12), rgba(255,150,200,0.08) 50%, transparent 70%)', filter: 'blur(6px)', animation: 'pulse 2s infinite alternate', pointerEvents: 'none' }} />}
     </div>
   );
 });

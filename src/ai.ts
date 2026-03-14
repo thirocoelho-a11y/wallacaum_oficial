@@ -217,19 +217,37 @@ export function updateFurioAI(
 
 // ─────────────────────────────────────────────────────
 //  DAVISAUM (companheiro)
+//
+//  Comportamento atualizado:
+//  - Fica com medo APENAS quando Wallaçaum toma dano
+//  - Medo dura ~2 segundos (120 frames), depois volta ao normal
+//  - Durante o medo, foge do inimigo mais próximo
+//  - Fora do medo, segue Wallaçaum normalmente
 // ─────────────────────────────────────────────────────
+const DAV_SCARED_DURATION = 120; // ~2 segundos de medo
+
 export function updateDavisAI(
   dav: Davisaum, p: Player,
   enemies: Enemy[], food: FoodItem[], f: number,
 ): void {
-  const ced = enemies.length > 0 ? Math.min(...enemies.map(e => dist(e.x, e.y, dav.x, dav.y))) : Infinity;
-  if (dav.isScared) {
-    if (ced > DAV_SCARED_EXIT) dav.isScared = false;
-  } else {
-    if (ced < DAV_SCARED_ENTER) dav.isScared = true;
+
+  // ── Trigger de medo: Wallaçaum acabou de tomar dano ──
+  // p.hurt=true + hurtTimer alto = primeiro frame do hit
+  if (p.hurt && p.hurtTimer > 12 && dav.scaredTimer <= 0) {
+    dav.scaredTimer = DAV_SCARED_DURATION;
+    dav.isScared = true;
   }
 
-  if (dav.isScared) {
+  // ── Countdown do medo ──
+  if (dav.scaredTimer > 0) {
+    dav.scaredTimer--;
+    if (dav.scaredTimer <= 0) {
+      dav.isScared = false;
+    }
+  }
+
+  // ── Comportamento: assustado (foge do inimigo mais perto) ──
+  if (dav.isScared && enemies.length > 0) {
     const ne = enemies.reduce((c, e) => {
       const d2 = dist(e.x, e.y, dav.x, dav.y);
       return d2 < c.d ? { d: d2, e } : c;
@@ -246,6 +264,8 @@ export function updateDavisAI(
     } else {
       dav.isWalking = false;
     }
+
+  // ── Comportamento: normal (segue Wallaçaum) ──
   } else {
     const tx = p.dir === 'right' ? p.x - 90 : p.x + 90;
     const ty = p.y;

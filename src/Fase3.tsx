@@ -13,7 +13,7 @@
 //
 //  Pós-boss: Horda massiva → cutscene → Fase 3½ (moto)
 // ═══════════════════════════════════════════════════════
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import PhaseRenderer from './PhaseRenderer';
 import { createFase3Objects } from './combatEnvironment';
 import {
@@ -21,10 +21,7 @@ import {
   SUKA_MK2_HP, ZUMBI_HP, ZUMBI_TURBO_HP,
   DEFAULT_POWERS,
 } from './constants';
-
-// ─── Cenário (placeholder — será substituído por cenarioFase3.ts) ───
-// TODO: importar de './cenarioFase3' quando o asset existir
-const CENARIO_FASE3_PLACEHOLDER = '';
+import { CENARIO_FASE3, preloadFase3Sprites } from './spritesFase3';
 
 export interface Fase3Props {
   initialScore: number;
@@ -40,6 +37,11 @@ export default function Fase3({
   initialScore, initialHp, muted, onToggleMute,
   onComplete, onGameOver,
 }: Fase3Props) {
+
+  // ── Pré-carregar sprites da Fase 3 ──
+  useEffect(() => {
+    preloadFase3Sprites();
+  }, []);
 
   // ── Rastrear mortes de zumbis pra spawn do Turbinado ──
   // Quando 3+ zumbis morrem "juntos" (dentro de ~2s), spawna Zumbi Turbinado.
@@ -126,7 +128,7 @@ export default function Fase3({
   return (
     <PhaseRenderer
       phase={3}
-      bgImage={CENARIO_FASE3_PLACEHOLDER}
+      bgImage={CENARIO_FASE3}
       muted={muted}
       onToggleMute={onToggleMute}
       overlay

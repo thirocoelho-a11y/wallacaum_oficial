@@ -8,7 +8,8 @@ import { BASE_W, MAX_HP, FOOD_SIZE, SPRITE_PLAYER_W, SPRITE_PLAYER_OFFSET_Y, SPR
 import { rng } from './utils';
 import { useGameEngine } from './useGameEngine';
 import { PixelWallacaum, PixelDavisaum, PixelAgent, FoodItemComp, FloatingText, ParticleRenderer } from './components';
-import { HpBar, ScoreDisplay, BossHpBar, MusicButton, TouchDpad, TouchActions } from './hud';
+import { HpBar, ScoreDisplay, BossHpBar, MusicButton, PauseButton, TouchDpad, TouchActions } from './hud';
+import { getFase3PropSprite, FASE3_PROP_SPRITES } from './spritesFase3';
 
 interface PhaseRendererProps {
   engineConfig: EnginePhaseConfig;
@@ -24,6 +25,64 @@ interface PhaseRendererProps {
 // ─────────────────────────────────────────────────────
 const EnvObjectComp = React.memo(function EnvObjectComp({ obj }: { obj: EnvironmentObject }) {
   if (!obj.active && !obj.exploding) return null;
+
+  // ── Dimensões por tipo de objeto ──
+  const SIZE: Record<string, { w: number; h: number }> = {
+    botijao:   { w: 40, h: 55 },
+    carrinho:  { w: 60, h: 50 },
+    poste:     { w: 25, h: 90 },
+    placa:     { w: 50, h: 40 },
+    tanque:    { w: 45, h: 65 },
+    tubulacao: { w: 60, h: 25 },
+  };
+  const dim = SIZE[obj.type] || { w: 60, h: 60 };
+
+  // ── Tentar sprite base64 primeiro ──
+  // Override pra estados destruídos (getFase3PropSprite nem sempre detecta)
+  let spriteSrc = '';
+  const isDestroyed = !obj.active && obj.exploding;
+  if (isDestroyed) {
+    // Forçar sprite destruído
+    if (obj.type === 'botijao')  spriteSrc = FASE3_PROP_SPRITES.botijao_explodindo;
+    if (obj.type === 'carrinho') spriteSrc = FASE3_PROP_SPRITES.carrinho_tombado;
+    if (obj.type === 'poste')    spriteSrc = FASE3_PROP_SPRITES.poste_caido;
+    if (obj.type === 'placa')    spriteSrc = FASE3_PROP_SPRITES.placa_voando;
+  }
+  // Se não é destruído, usar seletor normal
+  if (!spriteSrc) spriteSrc = getFase3PropSprite(obj);
+  if (spriteSrc) {
+    // Fade out gradual nos últimos 30 frames
+    const fadeTimer = obj.explodeTimer || 0;
+    const fadeOpacity = isDestroyed
+      ? (fadeTimer > 30 ? 1 : Math.max(0.2, fadeTimer / 30))
+      : 1;
+    // Poste caído: rotação horizontal
+    const destroyTransform = isDestroyed && obj.type === 'poste'
+      ? 'rotate(85deg)' : '';
+    // Botijão explodindo: scale up
+    const explodeScale = obj.type === 'botijao' && isDestroyed
+      ? `scale(${1 + (1 - fadeTimer / 25) * 0.5})` : '';
+
+    return (
+      <img
+        src={spriteSrc}
+        alt=""
+        style={{
+          width: dim.w, height: dim.h,
+          imageRendering: 'pixelated',
+          filter: (obj.type === 'botijao' && isDestroyed)
+            ? 'brightness(1.8) hue-rotate(10deg)'
+            : 'none',
+          opacity: fadeOpacity,
+          transform: `${destroyTransform} ${explodeScale}`,
+          transformOrigin: 'bottom center',
+          pointerEvents: 'none',
+        }}
+      />
+    );
+  }
+
+  // ── Fallback: CSS puro (quando sprite ainda não foi preenchido) ──
 
   // Explosão: efeito visual
   if (obj.exploding) {
@@ -272,6 +331,7 @@ export default function PhaseRenderer({ engineConfig, bgImage, phase, muted, onT
     p, dav, enemies, food, texts, particles,
     keysRef, frame, cam, shake, score, bossEnemy,
     envObjects, lightning,
+    paused, togglePause,
   } = useGameEngine(engineConfig);
 
   const isMoving = Math.abs(p.vx) > 0.3 || Math.abs(p.vy) > 0.3;
@@ -395,6 +455,9 @@ export default function PhaseRenderer({ engineConfig, bgImage, phase, muted, onT
                 stateTimer={ent.data.stateTimer} frame={frame}
                 isHurt={ent.data.hurt} hp={ent.data.hp} maxHp={ent.data.maxHp}
                 charging={ent.data.charging}
+                absorbing={ent.data.absorbing}
+                flying={ent.data.flying}
+                armorFailing={ent.data.armorFailing}
               />
             </div>
           );
@@ -440,8 +503,31 @@ export default function PhaseRenderer({ engineConfig, bgImage, phase, muted, onT
       <ScoreDisplay score={score} combo={p.combo} phase={phase} />
       {bossEnemy && <BossHpBar enemy={bossEnemy} />}
       <MusicButton muted={muted} onToggle={onToggleMute} />
+      <PauseButton paused={paused} onToggle={togglePause} />
       <TouchDpad keysRef={keysRef} />
       <TouchActions keysRef={keysRef} />
+
+      {/* ── Overlay de Pause ── */}
+      {paused && (
+        <div onClick={togglePause} style={{
+          position: 'absolute', inset: 0, zIndex: 10010,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+        }}>
+          <div style={{
+            fontSize: 24, color: '#f1c40f', fontWeight: 900,
+            fontFamily: '"Press Start 2P", monospace',
+            textShadow: '3px 3px 0 #000, 0 0 20px rgba(241,196,15,0.3)',
+            animation: 'pulse 1.5s infinite alternate',
+          }}>⏸ PAUSADO</div>
+          <div style={{
+            fontSize: 8, color: '#aaa', marginTop: 12,
+            textShadow: '1px 1px 0 #000',
+          }}>Clique ou pressione ESC / P para continuar</div>
+        </div>
+      )}
 
       {/* ── Indicador de carga da bufa (só com power-up) ── */}
       {p.powers?.bufaCarregada && (

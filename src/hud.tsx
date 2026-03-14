@@ -69,6 +69,17 @@ export const MusicButton = React.memo(function MusicButton({ muted, onToggle }: 
 });
 
 // ─────────────────────────────────────────────────────
+//  PauseButton
+// ─────────────────────────────────────────────────────
+export const PauseButton = React.memo(function PauseButton({ paused, onToggle }: { paused: boolean; onToggle: () => void }) {
+  return (
+    <div onClick={onToggle} onPointerDown={e => e.stopPropagation()} style={{ position: 'absolute', top: 8, left: 168, zIndex: 10001, background: 'rgba(0,0,0,0.5)', border: `1px solid ${paused ? '#f1c40f44' : '#ffffff22'}`, borderRadius: 12, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontSize: 11 }}>{paused ? '▶' : '⏸'}</span>
+    </div>
+  );
+});
+
+// ─────────────────────────────────────────────────────
 //  Touch D-Pad
 // ─────────────────────────────────────────────────────
 export const TouchDpad = React.memo(function TouchDpad({ keysRef }: { keysRef: React.MutableRefObject<Record<string, boolean>> }) {

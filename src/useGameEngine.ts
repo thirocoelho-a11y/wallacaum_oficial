@@ -28,6 +28,7 @@ import { updateZumbiAI, updateSukaMK2AI } from './aiFase3';
 import {
   updateEnvironmentObjects, checkPlayerActivatesObject,
   checkEnvironmentHitsEnemy, checkBotijaoAreaDamage, checkTubulacaoSlowZone,
+  respawnBossPhaseObjects,
 } from './combatEnvironment';
 
 // ─────────────────────────────────────────────────────
@@ -94,14 +95,25 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
   const envObjectsRef = useRef<EnvironmentObject[]>(cfg.environmentObjects ? [...cfg.environmentObjects] : []);
   const lightningRef = useRef<LightningZone[]>(cfg.lightningZones ? [...cfg.lightningZones] : []);
 
+  // ── Dicas do Davisaum pra objetos de ambiente (uma vez por tipo) ──
+  const objectHintsShown = useRef<Set<string>>(new Set());
+
   const [score, setScore] = useState(cfg.initialScore);
   const [dead, setDead] = useState(false);
   const [frameTick, setFrameTick] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
 
   // ── Teclado ──
   useEffect(() => {
     const d = (e: KeyboardEvent) => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+      // Escape ou P = toggle pause
+      if (e.key === 'Escape' || e.key.toLowerCase() === 'p') {
+        pausedRef.current = !pausedRef.current;
+        setPaused(pausedRef.current);
+        return;
+      }
       keysRef.current[e.key.toLowerCase()] = true;
     };
     const u = (e: KeyboardEvent) => { keysRef.current[e.key.toLowerCase()] = false; };
@@ -135,6 +147,9 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       // Hitstop — congela tudo exceto render
       if (p.hitstop > 0) { p.hitstop--; setFrameTick(f); animId = requestAnimationFrame(loop); return; }
 
+      // Pause — congela tudo, loop continua rodando pra detectar unpause
+      if (pausedRef.current) { frameRef.current--; animId = requestAnimationFrame(loop); return; }
+
       // ── Sistemas do jogador ──
       updateIdleEating(p, k, particles, texts, f);
       updatePlayerMovement(p, k, particles);
@@ -161,6 +176,30 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       if (useV2 && envObjects.length > 0) {
         // Física dos objetos
         updateEnvironmentObjects(envObjects, f);
+
+        // ── Dicas do Davisaum (primeira vez que chega perto) ──
+        const hints = objectHintsShown.current;
+        for (const obj of envObjects) {
+          if (!obj.active || hints.has(obj.type)) continue;
+          const hdx = Math.abs(obj.x - p.x);
+          const hdy = Math.abs(obj.y - p.y);
+          if (hdx < 150 && hdy < 80) {
+            hints.add(obj.type);
+            let hintText = '';
+            let hintColor = '#3498db';
+            switch (obj.type) {
+              case 'botijao':  hintText = 'USA O BOTIJÃO! CHUTA NELE!'; break;
+              case 'carrinho': hintText = 'EMPURRA O CARRINHO! SOCO OU BUFA!'; break;
+              case 'poste':    hintText = 'O POSTE! FAZ UM COMBO E DERRUBA!'; hintColor = '#f1c40f'; break;
+              case 'placa':    hintText = 'A PLACA! JOGA NOS ZUMBIS!'; break;
+              case 'tanque':   hintText = 'TANQUE DE BUFA! EXPLODE TUDO!'; hintColor = '#2ecc71'; break;
+              case 'tubulacao': hintText = 'A TUBULAÇÃO! LIBERA O VAPOR!'; break;
+            }
+            if (hintText) {
+              texts.push({ id: uid(), text: hintText, x: dav.x, y: dav.y - 70, color: hintColor, size: 9, t: f });
+            }
+          }
+        }
 
         // Jogador ativa objetos
         for (const obj of envObjects) {
@@ -276,6 +315,12 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
         });
         screenShakeRef.current = 20;
         texts.push({ id: uid(), text: cfg.bossAnnounce, x: p.x + 200, y: p.y - 100, color: cfg.bossAnnounceColor, size: 18, t: f });
+
+        // ── Respawnar objetos de ambiente pro combate do boss ──
+        if (useV2 && envObjects.length >= 0) {
+          respawnBossPhaseObjects(envObjects, p.x);
+          texts.push({ id: uid(), text: '⚠ NOVOS OBJETOS!', x: p.x, y: p.y - 60, color: '#e67e22', size: 10, t: f });
+        }
       } else if (spawnTimerRef.current > si && enemies.length < maxEnemies && !bossSpawned.current) {
         spawnTimerRef.current = 0;
         const side = Math.random() < 0.5 ? p.x - BASE_W * 0.6 : p.x + BASE_W * 0.6;
@@ -319,5 +364,8 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
     // ── Novo: expostos pro renderer ──
     envObjects: envObjectsRef.current,
     lightning: lightningRef.current,
+    // ── Pause ──
+    paused,
+    togglePause: () => { pausedRef.current = !pausedRef.current; setPaused(pausedRef.current); },
   };
 }

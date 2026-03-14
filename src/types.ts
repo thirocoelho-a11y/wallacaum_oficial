@@ -80,6 +80,7 @@ export interface Davisaum {
   x: number; y: number; dir: 'left' | 'right';
   throwTimer: number; isWalking: boolean;
   isThrowing: boolean; isScared: boolean;
+  scaredTimer: number;         // Countdown: medo temporário ao Wallaçaum tomar dano
 }
 
 /** Interface genérica para refs mutáveis — sem depender de React */

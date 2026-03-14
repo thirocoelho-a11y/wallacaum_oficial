@@ -83,6 +83,7 @@ export const DEFAULT_PLAYER: Player = {
 export const DEFAULT_DAVIS: Davisaum = {
   x: 100, y: 380, dir: 'right',
   throwTimer: 0, isWalking: false, isThrowing: false, isScared: false,
+  scaredTimer: 0,
 };
 
 // ── Helpers de tipo de inimigo (usados tanto em componentes quanto em combat) ──
@@ -142,7 +143,7 @@ export const ENV_BOTIJAO_SLIDE_SPEED = 6;
 export const ENV_CARRINHO_DAMAGE = 5;
 export const ENV_CARRINHO_SLOW_DURATION = 180;  // 3s slow
 export const ENV_POSTE_DAMAGE = 15;             // Cai e eletrocuta em linha
-export const ENV_POSTE_COMBO_REQ = 5;           // Combo mínimo pra derrubar poste
+export const ENV_POSTE_COMBO_REQ = 3;           // Combo mínimo pra derrubar poste (reduzido de 5 pra viabilizar com gás)
 export const ENV_PLACA_DAMAGE = 8;              // Projétil voador
 export const ENV_PLACA_SPEED = 8;
 export const ENV_TANQUE_DAMAGE = 12;            // Fase 5: tanque de líquido

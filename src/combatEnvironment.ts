@@ -114,13 +114,17 @@ export function checkPlayerActivatesObject(
       break;
     }
 
-    // ─── CARRINHO: Bufa empurra, óleo espirrando ───
+    // ─── CARRINHO: Soco OU bufa empurra, óleo espirrando ───
+    // (bufa empurra mais forte, soco empurra mais fraco)
     case 'carrinho': {
-      if (!bufaHit) break; // Só bufa ativa carrinho
-      obj.vx = pushDir * 4;
+      const carrinhoSpeed = bufaHit ? 4 : 2.5; // Bufa empurra mais longe
+      obj.vx = pushDir * carrinhoSpeed;
       obj.active = false; // Uso único
+      obj.exploding = true;       // Mantém visível (mostra sprite tombado)
+      obj.explodeTimer = 90;      // Visível por 1.5s depois de tombado
       spawnParticles(particles, 6, obj.x, obj.y - 10, '#d4a017', 'spark', 5, 20, 4);
       texts.push({ id: uid(), text: '🛒 ÓLEO!', x: obj.x, y: obj.y - 40, color: '#d4a017', size: 12, t: f });
+      playSFX('hit');
       break;
     }
 
@@ -133,6 +137,8 @@ export function checkPlayerActivatesObject(
         break;
       }
       obj.active = false;
+      obj.exploding = true;       // Mantém visível (mostra sprite caído)
+      obj.explodeTimer = 120;     // Visível por 2s (eletrocução dura mais)
       obj.vx = pushDir * 2; // Cai na direção
       screenShakeRef.current = 10;
       spawnParticles(particles, 8, obj.x, obj.y - 30, '#f1c40f', 'electric', 6, 25, 5);
@@ -141,13 +147,15 @@ export function checkPlayerActivatesObject(
       break;
     }
 
-    // ─── PLACA: Bufa transforma em projétil voador ───
+    // ─── PLACA: Soco OU bufa transforma em projétil voador ───
+    // (bufa lança mais rápido e mais longe)
     case 'placa': {
-      if (!bufaHit) break;
-      obj.vx = pushDir * ENV_PLACA_SPEED;
-      obj.vy = -1; // Leve arco pra cima
+      const placaSpeed = bufaHit ? ENV_PLACA_SPEED : ENV_PLACA_SPEED * 0.6;
+      obj.vx = pushDir * placaSpeed;
+      obj.vy = bufaHit ? -1 : -0.5; // Bufa dá arco maior
       spawnParticles(particles, 3, obj.x, obj.y - 20, '#e67e22', 'spark', 3, 15, 3);
       texts.push({ id: uid(), text: '🪧 VOOU!', x: obj.x, y: obj.y - 40, color: '#e67e22', size: 12, t: f });
+      playSFX('hit');
       break;
     }
 
@@ -256,7 +264,9 @@ export function checkEnvironmentHitsEnemy(
     case 'placa': {
       e.hp -= ENV_PLACA_DAMAGE; e.hurt = true; e.hurtTimer = 12;
       e.kbx = obj.vx > 0 ? 8 : -8;
-      obj.active = false; // Placa some ao atingir
+      obj.active = false;
+      obj.exploding = true;       // Flash de impacto breve
+      obj.explodeTimer = 20;      // Visível ~0.3s
       obj.vx = 0;
       spawnParticles(particles, 4, e.x, e.y - 30, '#e67e22', 'hit', 4, 12, 4);
       texts.push({ id: uid(), text: `-${ENV_PLACA_DAMAGE}`, x: e.x, y: e.y - 50, color: '#e67e22', size: 14, t: f });
@@ -356,6 +366,34 @@ export function createFase3Objects(): EnvironmentObject[] {
     { id: uid(), type: 'placa', x: 1500, y: FLOOR_MAX - 25, hp: 1, active: true, vx: 0 },
     { id: uid(), type: 'placa', x: 2800, y: FLOOR_MIN + 45, hp: 1, active: true, vx: 0 },
   ];
+}
+
+/**
+ * Respawna objetos frescos perto do jogador quando o boss aparece.
+ * Garante que o jogador tem ferramentas pro combate final.
+ * Chamado pelo useGameEngine quando bossSpawned = true.
+ */
+export function respawnBossPhaseObjects(
+  objects: EnvironmentObject[],
+  playerX: number,
+): void {
+  // Remover objetos inativos/explodidos pra limpar
+  for (let i = objects.length - 1; i >= 0; i--) {
+    if (!objects[i].active && !objects[i].exploding) {
+      objects.splice(i, 1);
+    }
+  }
+
+  // Spawnar 2 botijões + 1 placa + 1 carrinho perto do jogador
+  const offsets = [-200, 200, -350, 350];
+  const newObjects: EnvironmentObject[] = [
+    { id: uid(), type: 'botijao',  x: clamp(playerX + offsets[0], 50, WORLD_W - 50), y: FLOOR_MIN + 30, hp: 1, active: true, vx: 0 },
+    { id: uid(), type: 'botijao',  x: clamp(playerX + offsets[1], 50, WORLD_W - 50), y: FLOOR_MAX - 20, hp: 1, active: true, vx: 0 },
+    { id: uid(), type: 'placa',    x: clamp(playerX + offsets[2], 50, WORLD_W - 50), y: FLOOR_MIN + 35, hp: 1, active: true, vx: 0 },
+    { id: uid(), type: 'carrinho', x: clamp(playerX + offsets[3], 50, WORLD_W - 50), y: FLOOR_MAX - 15, hp: 1, active: true, vx: 0 },
+  ];
+
+  objects.push(...newObjects);
 }
 
 /** Gera objetos de ambiente da Fase 5 */
