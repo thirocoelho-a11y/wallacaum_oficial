@@ -22,7 +22,7 @@ export default function Fase2({ initialScore, initialHp, muted, onToggleMute, on
         initialScore, initialHp,
         bossThreshold: 800,
         spawnIntervalMs: 3000,
-        bossType: 'furio', bossHp: 60,
+        bossType: 'furio', bossHp: 45,
         bossAnnounce: '🔥 FURIO — CHEFE FINAL!', bossAnnounceColor: '#ff4500',
         bossDeathColor: '#ff4500', bossDeathParticles: '#f1c40f',
         getNormalEnemyType: () => Math.random() > 0.5 ? 'seguranca' : 'cientista',

@@ -7,8 +7,8 @@ import type { Player, Davisaum, MotoState, PlayerPowers, EnemyType } from './typ
 export const BASE_W = 800;
 export const BASE_H = 450;
 export const WORLD_W = 3200;
-export const FLOOR_MIN = BASE_H - 100;
-export const FLOOR_MAX = BASE_H - 18;
+export const FLOOR_MIN = BASE_H - 70;
+export const FLOOR_MAX = BASE_H - 10;
 
 // ── Física do Jogador ──
 export const GRAVITY = 0.65;
