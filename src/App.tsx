@@ -53,9 +53,9 @@ interface MusicConfig {
 
 const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
   title:          { track: 'title',      volume: 0.4 },
-  fase1:          { track: 'fase1',      volume: 0.5 },
+  fase1:          { track: 'fase1',      volume: 0.3 },
   trans_1to2:     { track: 'transition', volume: 0.3 },
-  fase2:          { track: 'fase2',      volume: 0.5 },
+  fase2:          { track: 'fase2',      volume: 0.4 },
   trans_2to3:     { track: 'transition', volume: 0.3 },
   fase3:          { track: 'fase3',      volume: 0.5 },
   trans_3tomoto:  { track: 'transition', volume: 0.3 },
@@ -105,9 +105,19 @@ export default function App() {
 
   // Reage a troca de screen → troca de música
   // Só toca se o áudio foi desbloqueado pelo clique do usuário
+  // Pula a primeira vez no title (o handleUnlock já tocou)
+  const firstUnlockRef = useRef(true);
+
   useEffect(() => {
     const jb = jukeboxRef.current;
     if (!jb || !unlocked) return;
+
+    // O handleUnlock já tocou a música do title direto no handler.
+    // Pula essa execução pra não dar play duplicado.
+    if (firstUnlockRef.current && screen === 'title') {
+      firstUnlockRef.current = false;
+      return;
+    }
 
     const cfg = SCREEN_MUSIC[screen];
     if (!cfg) return;
@@ -136,8 +146,28 @@ export default function App() {
 
   // ═══════════════════════════════════════════════════
   //  Unlock handler — desbloqueia áudio e vai pro título
+  //
+  //  IMPORTANTE: No celular, audio.play() SÓ funciona
+  //  se chamado DENTRO do handler de toque/clique.
+  //  Por isso tocamos a música direto aqui, não no useEffect.
   // ═══════════════════════════════════════════════════
   const handleUnlock = useCallback(() => {
+    // 1. Desbloqueia o AudioContext do sfx (se estava suspenso)
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      ctx.close();
+    } catch (_) { /* ignora */ }
+
+    // 2. Toca a música do título DIRETO no handler (exigência mobile)
+    const jb = jukeboxRef.current;
+    if (jb) {
+      const cfg = SCREEN_MUSIC['title'];
+      jb.setVolume(cfg.volume);
+      jb.play(cfg.track);
+    }
+
+    // 3. Atualiza estado
     setUnlocked(true);
     setScreen('title');
   }, []);
