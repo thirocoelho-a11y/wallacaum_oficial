@@ -20,7 +20,7 @@ export default function Fase2({ initialScore, initialHp, muted, onToggleMute, on
       overlay
       engineConfig={{
         initialScore, initialHp,
-        bossThreshold: 1600,
+        bossThreshold: 2600,
         spawnIntervalMs: 3000,
         bossType: 'furio', bossHp: 45,
         bossAnnounce: '🔥 FURIO — CHEFE FINAL!', bossAnnounceColor: '#ff4500',
