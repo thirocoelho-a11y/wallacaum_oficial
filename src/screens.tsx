@@ -1,5 +1,7 @@
 // ═══════════════════════════════════════════════════════
 //  screens.tsx — Telas de UI (título, transições, game over, vitória)
+//
+//  ✅ Adicionado: MotoToPhase4TransitionScreen
 // ═══════════════════════════════════════════════════════
 import React from 'react';
 
@@ -43,64 +45,28 @@ export function Phase2to3TransitionScreen({ score, onContinue }: { score: number
       background: 'radial-gradient(ellipse at center, rgba(0,10,20,0.9) 0%, rgba(0,0,0,0.98) 100%)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     }}>
-      {/* Vitória parcial */}
-      <div style={{
-        color: '#2ecc71', fontSize: 12, fontWeight: 900, letterSpacing: 3,
-        textShadow: '0 0 15px rgba(46,204,113,0.5)',
-      }}>
+      <div style={{ color: '#2ecc71', fontSize: 12, fontWeight: 900, letterSpacing: 3, textShadow: '0 0 15px rgba(46,204,113,0.5)' }}>
         ✅ FURIO DERROTADO!
       </div>
       <div style={{ color: '#888', fontSize: 9, marginTop: 8 }}>SCORE: {score}</div>
-
-      {/* Separador */}
-      <div style={{
-        width: 300, height: 2, margin: '16px 0',
-        background: 'linear-gradient(90deg, transparent, #95a5a6, transparent)',
-      }} />
-
-      {/* Narrativa */}
-      <div style={{
-        color: '#e74c3c', fontSize: 8, textAlign: 'center', maxWidth: 380,
-        lineHeight: 1.8, textShadow: '1px 1px 0 #000',
-      }}>
+      <div style={{ width: 300, height: 2, margin: '16px 0', background: 'linear-gradient(90deg, transparent, #95a5a6, transparent)' }} />
+      <div style={{ color: '#e74c3c', fontSize: 8, textAlign: 'center', maxWidth: 380, lineHeight: 1.8, textShadow: '1px 1px 0 #000' }}>
         A fábrica foi destruída... mas os zumbis flatulentos<br />
         já infestaram São Burgão. As lanchonetes fecharam.<br />
         O Projeto Bufa Sintética criou algo incontrolável.
       </div>
-
-      {/* Separador */}
-      <div style={{
-        width: 300, height: 2, margin: '16px 0',
-        background: 'linear-gradient(90deg, transparent, #9b59b6, transparent)',
-      }} />
-
-      {/* Título Fase 3 */}
-      <div style={{
-        fontSize: 18, color: '#9b59b6', fontWeight: 900,
-        fontFamily: '"Press Start 2P", monospace',
-        textShadow: '3px 3px 0 #000, 0 0 20px rgba(155,89,182,0.4)',
-        animation: 'pulse 1s infinite alternate', letterSpacing: 2,
-      }}>
+      <div style={{ width: 300, height: 2, margin: '16px 0', background: 'linear-gradient(90deg, transparent, #9b59b6, transparent)' }} />
+      <div style={{ fontSize: 18, color: '#9b59b6', fontWeight: 900, fontFamily: '"Press Start 2P", monospace', textShadow: '3px 3px 0 #000, 0 0 20px rgba(155,89,182,0.4)', animation: 'pulse 1s infinite alternate', letterSpacing: 2 }}>
         FASE 3
       </div>
-      <div style={{
-        fontSize: 10, color: '#bb88dd', marginTop: 6,
-        letterSpacing: 2, fontWeight: 700, textShadow: '1px 1px 0 #000',
-      }}>
+      <div style={{ fontSize: 10, color: '#bb88dd', marginTop: 6, letterSpacing: 2, fontWeight: 700, textShadow: '1px 1px 0 #000' }}>
         TEMPESTADE SOBRE SÃO BURGÃO
       </div>
-
-      {/* Descrição */}
-      <div style={{
-        color: '#aaa', fontSize: 8, marginTop: 12,
-        textAlign: 'center', maxWidth: 350, lineHeight: 1.6,
-      }}>
+      <div style={{ color: '#aaa', fontSize: 8, marginTop: 12, textAlign: 'center', maxWidth: 350, lineHeight: 1.6 }}>
         A Bufa Celeste original alimenta os zumbis em vez de derrotá-los.<br />
         Use os objetos do ambiente a seu favor.<br />
         SUKA voltou — com armadura nova.
       </div>
-
-      {/* Botão */}
       <div onClick={onContinue} style={{
         marginTop: 20, padding: '12px 36px',
         background: 'linear-gradient(180deg, #9b59b6, #7d3c98)',
@@ -118,8 +84,6 @@ export function Phase2to3TransitionScreen({ score, onContinue }: { score: number
 
 // ─────────────────────────────────────────────────────
 //  Transição Fase 3 → 3½ (pós-cutscene horda, moto)
-//  NOTA: a cutscene da horda está dentro do Fase3.tsx.
-//  Esta tela é o "loading" rápido antes da moto.
 // ─────────────────────────────────────────────────────
 export function Phase3toMotoTransitionScreen({ score, onContinue }: { score: number; onContinue: () => void }) {
   return (
@@ -142,12 +106,7 @@ export function Phase3toMotoTransitionScreen({ score, onContinue }: { score: num
       }}>
         ESTRADA PARA A MONTANHA
       </div>
-
-      <div style={{
-        width: 300, height: 2, margin: '16px 0',
-        background: 'linear-gradient(90deg, transparent, #e67e22, transparent)',
-      }} />
-
+      <div style={{ width: 300, height: 2, margin: '16px 0', background: 'linear-gradient(90deg, transparent, #e67e22, transparent)' }} />
       <div style={{
         color: '#aaa', fontSize: 8, textAlign: 'center',
         maxWidth: 350, lineHeight: 1.8,
@@ -156,7 +115,6 @@ export function Phase3toMotoTransitionScreen({ score, onContinue }: { score: num
         ↑↓ Mudar faixa &nbsp; Z Pular &nbsp; X Soco lateral<br />
         Sobreviva até a montanha!
       </div>
-
       <div onClick={onContinue} style={{
         marginTop: 20, padding: '12px 36px',
         background: 'linear-gradient(180deg, #e67e22, #d35400)',
@@ -167,6 +125,85 @@ export function Phase3toMotoTransitionScreen({ score, onContinue }: { score: num
         animation: 'pulse 1.2s infinite alternate',
       }}>
         ACELERAR
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+//  ✅ NOVO: Transição Moto → Fase 4 (chegou na montanha)
+// ─────────────────────────────────────────────────────
+export function MotoToPhase4TransitionScreen({ score, onContinue }: { score: number; onContinue: () => void }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 99999,
+      background: 'radial-gradient(ellipse at center, rgba(5,5,15,0.95) 0%, rgba(0,0,0,0.98) 100%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {/* Vitória da moto */}
+      <div style={{
+        color: '#2ecc71', fontSize: 12, fontWeight: 900, letterSpacing: 3,
+        textShadow: '0 0 15px rgba(46,204,113,0.5)',
+      }}>
+        ✅ FUGA BEM-SUCEDIDA!
+      </div>
+      <div style={{ color: '#888', fontSize: 9, marginTop: 6 }}>SCORE: {score}</div>
+
+      {/* Davisaum aliviado */}
+      <div style={{
+        color: '#3498db', fontSize: 8, marginTop: 12,
+        fontStyle: 'italic', textShadow: '1px 1px 0 #000',
+      }}>
+        Davisaum: "CHEGAMOS! EU AINDA TO INTEIRO?! CONFERE PRA MIM!"
+      </div>
+
+      {/* Separador */}
+      <div style={{
+        width: 300, height: 2, margin: '16px 0',
+        background: 'linear-gradient(90deg, transparent, #95a5a6, transparent)',
+      }} />
+
+      {/* Montanha */}
+      <div style={{
+        fontSize: 22, color: '#95a5a6', fontWeight: 900,
+        fontFamily: '"Press Start 2P", monospace',
+        textShadow: '3px 3px 0 #000, 0 0 20px rgba(149,165,166,0.3)',
+        animation: 'pulse 1.5s infinite alternate',
+        letterSpacing: 2,
+      }}>
+        🏔️ MONTANHA DAS PEDRAS AGUDAS
+      </div>
+
+      {/* Narrativa */}
+      <div style={{
+        color: '#aaa', fontSize: 8, marginTop: 14,
+        textAlign: 'center', maxWidth: 380, lineHeight: 1.8,
+        textShadow: '1px 1px 0 #000',
+      }}>
+        O Mestre Ancião os esperava.<br />
+        <br />
+        <span style={{ color: '#f1c40f', fontWeight: 700 }}>
+          "É hora de evoluir a Bufa Celeste."
+        </span>
+      </div>
+
+      {/* Separador */}
+      <div style={{
+        width: 300, height: 2, margin: '16px 0',
+        background: 'linear-gradient(90deg, transparent, #f1c40f33, transparent)',
+      }} />
+
+      {/* Botão */}
+      <div onClick={onContinue} style={{
+        marginTop: 8, padding: '12px 36px',
+        background: 'linear-gradient(180deg, #95a5a6, #7f8c8d)',
+        color: '#fff', fontWeight: 900, fontSize: 11,
+        border: '3px solid #bdc3c7', borderRadius: 4,
+        cursor: 'pointer', letterSpacing: 2,
+        boxShadow: '0 4px 20px rgba(149,165,166,0.3)',
+        animation: 'pulse 1.2s infinite alternate',
+      }}>
+        INICIAR TREINO
       </div>
     </div>
   );

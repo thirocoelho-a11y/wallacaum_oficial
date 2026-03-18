@@ -1,42 +1,74 @@
 // ═══════════════════════════════════════════════════════
-//  App.tsx — Roteador de Fases + Música + Telas
+//  App.tsx — Roteador de Fases + Música por Fase + Telas
 //
 //  Fluxo: título → fase1 → trans1→2 → fase2 → trans2→3
-//         → fase3 → trans3→moto → fase3moto → ...
+//         → fase3 → trans3→moto → fase3moto → trans_mototo4 → ...
 //
-//  Fases 3½, 4, 5 serão adicionadas aqui quando prontas.
+//  ✅ INTEGRADO: Fase 3½ (Moto)
+//  ✅ INTEGRADO: Música diferente por fase (Jukebox)
 // ═══════════════════════════════════════════════════════
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MUSICA_SPRITE } from './musicSprite';
+import { createJukebox, type Jukebox, type MusicTrackId } from './musicSprite';
 import { setSFXMute } from './sfx';
 import { BASE_W, BASE_H, MAX_HP } from './constants';
 import { GAME_CSS } from './gameStyles';
 import {
   TitleScreen, PhaseTransitionScreen, Phase2to3TransitionScreen,
-  Phase3toMotoTransitionScreen, GameOverScreen, VictoryScreen,
+  Phase3toMotoTransitionScreen, MotoToPhase4TransitionScreen,
+  GameOverScreen, VictoryScreen,
 } from './screens';
 import Fase1 from './Fase1';
 import Fase2 from './Fase2';
 import Fase3 from './Fase3';
-// import Fase3Moto from './Fase3Moto';  // TODO: quando pronto
+import Fase3Moto from './Fase3Moto';
 // import Fase4 from './Fase4';           // TODO: quando pronto
 // import Fase5 from './Fase5';           // TODO: quando pronto
 
 type Screen =
   | 'title'
   | 'fase1'
-  | 'trans_1to2'        // Suka derrotada → Fase 2
+  | 'trans_1to2'
   | 'fase2'
-  | 'trans_2to3'        // Furio derrotado → Fase 3
+  | 'trans_2to3'
   | 'fase3'
-  | 'trans_3tomoto'     // Suka MK2 derrotada → Moto
-  // | 'fase3moto'      // TODO
-  // | 'trans_mototo4'   // TODO
-  // | 'fase4'           // TODO
-  // | 'trans_4to5'      // TODO
-  // | 'fase5'           // TODO
+  | 'trans_3tomoto'
+  | 'fase3moto'
+  | 'trans_mototo4'
+  // | 'fase4'
+  // | 'trans_4to5'
+  // | 'fase5'
   | 'gameover'
   | 'victory';
+
+// ─────────────────────────────────────────────────────
+//  MAPA: Screen → MusicTrackId + Volume
+//
+//  Para adicionar música a uma fase nova, basta:
+//  1. Adicionar o base64 no musicSprite.ts (ex: MUSICA_FASE4)
+//  2. Adicionar a screen aqui no mapa
+// ─────────────────────────────────────────────────────
+interface MusicConfig {
+  track: MusicTrackId;
+  volume: number;
+  fadeOut?: boolean;  // true = fade out gradual ao entrar nessa screen
+}
+
+const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
+  title:          { track: 'title',      volume: 0.4 },
+  fase1:          { track: 'fase1',      volume: 0.5 },
+  trans_1to2:     { track: 'transition', volume: 0.3 },
+  fase2:          { track: 'fase2',      volume: 0.5 },
+  trans_2to3:     { track: 'transition', volume: 0.3 },
+  fase3:          { track: 'fase3',      volume: 0.5 },
+  trans_3tomoto:  { track: 'transition', volume: 0.3 },
+  fase3moto:      { track: 'fase3moto',  volume: 0.6 },
+  trans_mototo4:  { track: 'transition', volume: 0.3 },
+  // fase4:       { track: 'fase4',      volume: 0.5 },
+  // trans_4to5:  { track: 'transition', volume: 0.3 },
+  // fase5:       { track: 'fase5',      volume: 0.5 },
+  gameover:       { track: 'gameover',   volume: 0.5, fadeOut: true },
+  victory:        { track: 'victory',    volume: 0.4 },
+};
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('title');
@@ -61,41 +93,43 @@ export default function App() {
     };
   }, []);
 
-  // ── Música ──
-  const musicRef = useRef<HTMLAudioElement | null>(null);
+  // ── Jukebox (música por fase) ──
+  const jukeboxRef = useRef<Jukebox | null>(null);
+
   useEffect(() => {
-    const a = new Audio(MUSICA_SPRITE);
-    a.loop = true; a.volume = 0.5; a.preload = 'auto';
-    musicRef.current = a;
-    return () => { a.pause(); a.src = ''; };
+    const jb = createJukebox();
+    jukeboxRef.current = jb;
+    return () => { jb.destroy(); };
   }, []);
 
+  // Reage a troca de screen → troca de música
   useEffect(() => {
-    const a = musicRef.current; if (!a) return;
-    const playingScreens: Screen[] = ['fase1', 'fase2', 'fase3'];
+    const jb = jukeboxRef.current;
+    if (!jb) return;
 
-    if (playingScreens.includes(screen)) {
-      a.volume = 0.5;
-      a.play().catch(() => {});
-    } else if (screen === 'gameover') {
-      let v = a.volume;
-      const f = setInterval(() => {
-        v -= 0.05;
-        if (v <= 0) { clearInterval(f); a.pause(); a.volume = 0.5; }
-        else a.volume = v;
-      }, 50);
-      return () => clearInterval(f);
-    } else if (screen === 'victory') {
-      a.volume = 0.25;
-    } else if (screen.startsWith('trans_')) {
-      a.volume = 0.3;
+    const cfg = SCREEN_MUSIC[screen];
+    if (!cfg) return;
+
+    // Se a screen anterior era gameover com fadeOut, faz o fade primeiro
+    // Caso contrário, troca direto
+    if (cfg.fadeOut) {
+      // Fade out da música anterior, depois toca a nova (se tiver)
+      jb.fadeOut(500).then(() => {
+        if (cfg.track !== 'silent' && cfg.track !== 'transition') {
+          jb.setVolume(cfg.volume);
+          jb.play(cfg.track);
+        }
+      });
     } else {
-      a.pause(); a.currentTime = 0; a.volume = 0.5;
+      jb.setVolume(cfg.volume);
+      jb.play(cfg.track);
     }
   }, [screen]);
 
+  // Mute sincroniza com jukebox + sfx
   useEffect(() => {
-    if (musicRef.current) musicRef.current.muted = muted;
+    const jb = jukeboxRef.current;
+    if (jb) jb.setMuted(muted);
     setSFXMute(muted);
   }, [muted]);
 
@@ -109,7 +143,6 @@ export default function App() {
     setScore(0); setHp(MAX_HP); setScreen('fase1');
   }, []);
 
-  // Fase 1 → transição → Fase 2
   const onFase1Complete = useCallback((newScore: number, newHp: number) => {
     setScore(newScore); setHp(newHp); setScreen('trans_1to2');
   }, []);
@@ -118,7 +151,6 @@ export default function App() {
     setScreen('fase2');
   }, []);
 
-  // Fase 2 → transição → Fase 3
   const onFase2Complete = useCallback((newScore: number, newHp: number) => {
     setScore(newScore); setHp(newHp); setScreen('trans_2to3');
   }, []);
@@ -127,24 +159,27 @@ export default function App() {
     setScreen('fase3');
   }, []);
 
-  // Fase 3 → transição → Moto (3½)
-  // NOTA: Fase3.tsx tem cutscene interna da horda antes de chamar onComplete
   const onFase3Complete = useCallback((newScore: number, newHp: number) => {
     setScore(newScore); setHp(newHp); setScreen('trans_3tomoto');
   }, []);
 
   const startMoto = useCallback(() => {
-    // TODO: setScreen('fase3moto'); quando Fase3Moto existir
-    // Por agora, mostra vitória temporária (placeholder)
+    setScreen('fase3moto');
+  }, []);
+
+  const onMotoComplete = useCallback((newScore: number, newHp: number) => {
+    setScore(newScore); setHp(newHp); setScreen('trans_mototo4');
+  }, []);
+
+  const startFase4 = useCallback(() => {
+    // TODO: setScreen('fase4'); quando Fase 4 existir
     setScreen('victory');
   }, []);
 
-  // Vitória final (será chamada pela Fase 5 no futuro)
   const onVictory = useCallback((finalScore: number) => {
     setScore(finalScore); setScreen('victory');
   }, []);
 
-  // Game Over (qualquer fase)
   const onGameOver = useCallback((finalScore: number) => {
     setScore(finalScore); setScreen('gameover');
   }, []);
@@ -170,8 +205,6 @@ export default function App() {
         position: 'relative', overflow: 'hidden', imageRendering: 'pixelated',
       }}>
 
-        {/* ── Fases jogáveis ── */}
-
         {screen === 'fase1' && (
           <Fase1
             initialScore={0} initialHp={MAX_HP}
@@ -196,16 +229,13 @@ export default function App() {
           />
         )}
 
-        {/* TODO: Fase 3½ Moto */}
-        {/* {screen === 'fase3moto' && (
+        {screen === 'fase3moto' && (
           <Fase3Moto
             initialScore={score} initialHp={hp}
             muted={muted} onToggleMute={toggleMute}
             onComplete={onMotoComplete} onGameOver={onGameOver} onRestart={startGame}
           />
-        )} */}
-
-        {/* ── Telas de UI ── */}
+        )}
 
         {screen === 'title' && <TitleScreen onStart={startGame} />}
 
@@ -219,6 +249,10 @@ export default function App() {
 
         {screen === 'trans_3tomoto' && (
           <Phase3toMotoTransitionScreen score={score} onContinue={startMoto} />
+        )}
+
+        {screen === 'trans_mototo4' && (
+          <MotoToPhase4TransitionScreen score={score} onContinue={startFase4} />
         )}
 
         {screen === 'gameover' && <GameOverScreen score={score} onRetry={startGame} />}

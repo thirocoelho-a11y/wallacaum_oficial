@@ -20,7 +20,7 @@ export default function Fase1({ initialScore, initialHp, muted, onToggleMute, on
       onToggleMute={onToggleMute}
       engineConfig={{
         initialScore, initialHp,
-        bossThreshold: 1000,
+        bossThreshold: 2000,
         spawnIntervalMs: SPAWN_INTERVAL_MS,
         bossType: 'suka', bossHp: 40,
         bossAnnounce: '☠ SUKA BARULHENTA!', bossAnnounceColor: '#9b59b6',
