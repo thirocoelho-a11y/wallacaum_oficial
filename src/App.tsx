@@ -1,11 +1,13 @@
 // ═══════════════════════════════════════════════════════
 //  App.tsx — Roteador de Fases + Música por Fase + Telas
 //
-//  Fluxo: título → fase1 → trans1→2 → fase2 → trans2→3
-//         → fase3 → trans3→moto → fase3moto → trans_mototo4 → ...
+//  Fluxo: unlock → título → fase1 → trans1→2 → fase2 →
+//         trans2→3 → fase3 → trans3→moto → fase3moto →
+//         trans_mototo4 → ...
 //
 //  ✅ INTEGRADO: Fase 3½ (Moto)
 //  ✅ INTEGRADO: Música diferente por fase (Jukebox)
+//  ✅ FIX: Tela de unlock para autoplay no Vercel
 // ═══════════════════════════════════════════════════════
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createJukebox, type Jukebox, type MusicTrackId } from './musicSprite';
@@ -42,15 +44,11 @@ type Screen =
 
 // ─────────────────────────────────────────────────────
 //  MAPA: Screen → MusicTrackId + Volume
-//
-//  Para adicionar música a uma fase nova, basta:
-//  1. Adicionar o base64 no musicSprite.ts (ex: MUSICA_FASE4)
-//  2. Adicionar a screen aqui no mapa
 // ─────────────────────────────────────────────────────
 interface MusicConfig {
   track: MusicTrackId;
   volume: number;
-  fadeOut?: boolean;  // true = fade out gradual ao entrar nessa screen
+  fadeOut?: boolean;
 }
 
 const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
@@ -71,6 +69,9 @@ const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
 };
 
 export default function App() {
+  // ── Unlock de áudio (necessário pro Vercel/produção) ──
+  const [unlocked, setUnlocked] = useState(false);
+
   const [screen, setScreen] = useState<Screen>('title');
   const [score, setScore] = useState(0);
   const [hp, setHp] = useState(MAX_HP);
@@ -103,17 +104,15 @@ export default function App() {
   }, []);
 
   // Reage a troca de screen → troca de música
+  // Só toca se o áudio foi desbloqueado pelo clique do usuário
   useEffect(() => {
     const jb = jukeboxRef.current;
-    if (!jb) return;
+    if (!jb || !unlocked) return;
 
     const cfg = SCREEN_MUSIC[screen];
     if (!cfg) return;
 
-    // Se a screen anterior era gameover com fadeOut, faz o fade primeiro
-    // Caso contrário, troca direto
     if (cfg.fadeOut) {
-      // Fade out da música anterior, depois toca a nova (se tiver)
       jb.fadeOut(500).then(() => {
         if (cfg.track !== 'silent' && cfg.track !== 'transition') {
           jb.setVolume(cfg.volume);
@@ -124,7 +123,7 @@ export default function App() {
       jb.setVolume(cfg.volume);
       jb.play(cfg.track);
     }
-  }, [screen]);
+  }, [screen, unlocked]);
 
   // Mute sincroniza com jukebox + sfx
   useEffect(() => {
@@ -134,6 +133,14 @@ export default function App() {
   }, [muted]);
 
   const toggleMute = useCallback(() => setMuted(m => !m), []);
+
+  // ═══════════════════════════════════════════════════
+  //  Unlock handler — desbloqueia áudio e vai pro título
+  // ═══════════════════════════════════════════════════
+  const handleUnlock = useCallback(() => {
+    setUnlocked(true);
+    setScreen('title');
+  }, []);
 
   // ═══════════════════════════════════════════════════
   //  Navegação entre fases
@@ -172,7 +179,6 @@ export default function App() {
   }, []);
 
   const startFase4 = useCallback(() => {
-    // TODO: setScreen('fase4'); quando Fase 4 existir
     setScreen('victory');
   }, []);
 
@@ -199,66 +205,134 @@ export default function App() {
       onContextMenu={e => e.preventDefault()}
     >
       <style>{GAME_CSS}</style>
-      <div style={{
-        width: BASE_W, height: BASE_H,
-        transform: `scale(${viewScale})`, transformOrigin: 'center center',
-        position: 'relative', overflow: 'hidden', imageRendering: 'pixelated',
-      }}>
 
-        {screen === 'fase1' && (
-          <Fase1
-            initialScore={0} initialHp={MAX_HP}
-            muted={muted} onToggleMute={toggleMute}
-            onComplete={onFase1Complete} onGameOver={onGameOver} onRestart={startGame}
-          />
-        )}
+      {/* ═══════════════════════════════════════════════
+          TELA DE UNLOCK — Aparece antes de tudo.
+          O clique do usuário desbloqueia o autoplay
+          de áudio nos navegadores (Chrome, Safari, etc).
+          ═══════════════════════════════════════════════ */}
+      {!unlocked && (
+        <div
+          onClick={handleUnlock}
+          onTouchStart={handleUnlock}
+          style={{
+            position: 'absolute', inset: 0, zIndex: 999999,
+            background: 'radial-gradient(ellipse at center, rgba(10,5,20,0.95) 0%, #000 100%)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          {/* Logo */}
+          <div style={{
+            fontSize: 32, color: '#f1c40f', fontWeight: 900,
+            fontFamily: '"Press Start 2P", monospace',
+            textShadow: '3px 3px 0 #c0392b, 6px 6px 0 rgba(0,0,0,0.5)',
+            letterSpacing: 3,
+            animation: 'pulse 1.5s infinite alternate',
+          }}>
+            WALLAÇAUM
+          </div>
 
-        {screen === 'fase2' && (
-          <Fase2
-            initialScore={score} initialHp={hp}
-            muted={muted} onToggleMute={toggleMute}
-            onVictory={onFase2Complete} onGameOver={onGameOver} onRestart={startGame}
-          />
-        )}
+          {/* Subtítulo */}
+          <div style={{
+            fontSize: 8, color: '#e74c3c', marginTop: 8,
+            letterSpacing: 3, fontWeight: 700,
+            textShadow: '1px 1px 0 #000',
+          }}>
+            A CONSPIRAÇÃO DO SUPLEMENTO
+          </div>
 
-        {screen === 'fase3' && (
-          <Fase3
-            initialScore={score} initialHp={hp}
-            muted={muted} onToggleMute={toggleMute}
-            onComplete={onFase3Complete} onGameOver={onGameOver} onRestart={startGame}
-          />
-        )}
+          {/* Separador */}
+          <div style={{
+            width: 200, height: 2, margin: '24px 0',
+            background: 'linear-gradient(90deg, transparent, #f1c40f44, transparent)',
+          }} />
 
-        {screen === 'fase3moto' && (
-          <Fase3Moto
-            initialScore={score} initialHp={hp}
-            muted={muted} onToggleMute={toggleMute}
-            onComplete={onMotoComplete} onGameOver={onGameOver} onRestart={startGame}
-          />
-        )}
+          {/* Instrução de toque */}
+          <div style={{
+            fontSize: 11, color: '#fff', fontWeight: 900,
+            letterSpacing: 2,
+            animation: 'pulse 1s infinite alternate',
+          }}>
+            🎮 TOQUE PARA COMEÇAR
+          </div>
 
-        {screen === 'title' && <TitleScreen onStart={startGame} />}
+          {/* Dica mobile */}
+          <div style={{
+            fontSize: 7, color: '#666', marginTop: 12,
+            letterSpacing: 1,
+          }}>
+            Clique ou toque na tela
+          </div>
+        </div>
+      )}
 
-        {screen === 'trans_1to2' && (
-          <PhaseTransitionScreen score={score} onContinue={startFase2} />
-        )}
+      {/* ═══════════════════════════════════════════════
+          VIEWPORT DO JOGO (só renderiza após unlock)
+          ═══════════════════════════════════════════════ */}
+      {unlocked && (
+        <div style={{
+          width: BASE_W, height: BASE_H,
+          transform: `scale(${viewScale})`, transformOrigin: 'center center',
+          position: 'relative', overflow: 'hidden', imageRendering: 'pixelated',
+        }}>
 
-        {screen === 'trans_2to3' && (
-          <Phase2to3TransitionScreen score={score} onContinue={startFase3} />
-        )}
+          {screen === 'fase1' && (
+            <Fase1
+              initialScore={0} initialHp={MAX_HP}
+              muted={muted} onToggleMute={toggleMute}
+              onComplete={onFase1Complete} onGameOver={onGameOver} onRestart={startGame}
+            />
+          )}
 
-        {screen === 'trans_3tomoto' && (
-          <Phase3toMotoTransitionScreen score={score} onContinue={startMoto} />
-        )}
+          {screen === 'fase2' && (
+            <Fase2
+              initialScore={score} initialHp={hp}
+              muted={muted} onToggleMute={toggleMute}
+              onVictory={onFase2Complete} onGameOver={onGameOver} onRestart={startGame}
+            />
+          )}
 
-        {screen === 'trans_mototo4' && (
-          <MotoToPhase4TransitionScreen score={score} onContinue={startFase4} />
-        )}
+          {screen === 'fase3' && (
+            <Fase3
+              initialScore={score} initialHp={hp}
+              muted={muted} onToggleMute={toggleMute}
+              onComplete={onFase3Complete} onGameOver={onGameOver} onRestart={startGame}
+            />
+          )}
 
-        {screen === 'gameover' && <GameOverScreen score={score} onRetry={startGame} />}
-        {screen === 'victory' && <VictoryScreen score={score} onRetry={startGame} />}
+          {screen === 'fase3moto' && (
+            <Fase3Moto
+              initialScore={score} initialHp={hp}
+              muted={muted} onToggleMute={toggleMute}
+              onComplete={onMotoComplete} onGameOver={onGameOver} onRestart={startGame}
+            />
+          )}
 
-      </div>
+          {screen === 'title' && <TitleScreen onStart={startGame} />}
+
+          {screen === 'trans_1to2' && (
+            <PhaseTransitionScreen score={score} onContinue={startFase2} />
+          )}
+
+          {screen === 'trans_2to3' && (
+            <Phase2to3TransitionScreen score={score} onContinue={startFase3} />
+          )}
+
+          {screen === 'trans_3tomoto' && (
+            <Phase3toMotoTransitionScreen score={score} onContinue={startMoto} />
+          )}
+
+          {screen === 'trans_mototo4' && (
+            <MotoToPhase4TransitionScreen score={score} onContinue={startFase4} />
+          )}
+
+          {screen === 'gameover' && <GameOverScreen score={score} onRetry={startGame} />}
+          {screen === 'victory' && <VictoryScreen score={score} onRetry={startGame} />}
+
+        </div>
+      )}
     </div>
   );
 }
