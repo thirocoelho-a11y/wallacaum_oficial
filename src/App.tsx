@@ -70,7 +70,7 @@ const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
 
 export default function App() {
   // ── Unlock de áudio (necessário pro Vercel/produção) ──
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlocked] = useState(true);
 
   const [screen, setScreen] = useState<Screen>('title');
   const [score, setScore] = useState(0);

@@ -47,21 +47,23 @@ interface MotoRendererProps {
   onToggleMute: () => void;
   /** true quando a fase completou (exibir cenário montanha) */
   phaseComplete?: boolean;
+  /** ✅ Offset da câmera (posição da moto no mundo - posição na tela) */
+  cameraX: number;
 }
 
 // ─────────────────────────────────────────────────────
 //  Componente: Background scrolling
 // ─────────────────────────────────────────────────────
 const ScrollingBackground = React.memo(function ScrollingBackground({
-  frame, speed, phaseComplete,
+  cameraX, phaseComplete,
 }: {
-  frame: number; speed: number; phaseComplete: boolean;
+  cameraX: number; phaseComplete: boolean;
 }) {
   const bgSrc = phaseComplete ? CENARIO_MONTANHA : CENARIO_CIDADE;
   const hasBg = bgSrc.length > 0;
 
-  // Scroll horizontal contínuo (só no cenário cidade)
-  const scrollX = phaseComplete ? 0 : -(frame * speed * BG_SCROLL_SPEED);
+  // ✅ Scroll baseado na posição da câmera (não frame * speed)
+  const scrollX = phaseComplete ? 0 : -(cameraX * BG_SCROLL_SPEED);
 
   if (!hasBg) {
     // Fallback: cor sólida + linhas da estrada (quando base64 não preenchido)
@@ -198,25 +200,31 @@ const MotoBike = React.memo(function MotoBike({
 });
 
 // ─────────────────────────────────────────────────────
-//  Componente: Obstáculo (img base64)
+//  Componente: Obstáculo (img base64 com animação)
 // ─────────────────────────────────────────────────────
 const ObstacleComp = React.memo(function ObstacleComp({
-  type, frame,
+  type, frame, hit,
 }: {
-  type: RoadObstacleType; frame: number;
+  type: RoadObstacleType; frame: number; hit: boolean;
 }) {
-  const sprite = getObstacleSprite(type);
+  const sprite = getObstacleSprite(type, frame, hit);
   const size = OBSTACLE_SIZES[type] ?? { width: 40, height: 40 };
   const hasSprite = sprite.length > 0;
 
-  // Gás tem pulsação extra
+  // Gás tem pulsação CSS extra (complementa a animação de frames)
   const gasStyle = type === 'gas' ? {
     filter: 'blur(1px)',
     opacity: 0.7 + Math.sin(frame * 0.12) * 0.15,
   } : {};
 
+  // Zumbi corredor hit: efeito visual de impacto
+  const hitStyle = (type === 'zumbi_corredor' && hit) ? {
+    transform: 'rotate(15deg) scale(1.1)',
+    filter: 'brightness(2)',
+    opacity: 0.8,
+  } : {};
+
   if (!hasSprite) {
-    // Fallback mínimo por tipo
     const fallbackColors: Record<string, string> = {
       zumbi: '#6abf69',
       carro: '#8b4513',
@@ -225,6 +233,12 @@ const ObstacleComp = React.memo(function ObstacleComp({
       zumbi_corredor: '#4a9a49',
       barreira: '#e74c3c',
     };
+
+    // Fallback animado pro zumbi corredor (alterna cor das pernas)
+    const runAnim = type === 'zumbi_corredor' && !hit ? {
+      transform: `translateX(${Math.sin(frame * 0.3) * 3}px)`,
+    } : {};
+
     return (
       <div style={{
         width: size.width, height: size.height,
@@ -233,9 +247,11 @@ const ObstacleComp = React.memo(function ObstacleComp({
         border: '1px solid rgba(0,0,0,0.3)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         ...gasStyle,
+        ...hitStyle,
+        ...runAnim,
       }}>
         <span style={{ fontSize: 6, color: '#fff', fontFamily: 'monospace', textTransform: 'uppercase' }}>
-          {type.slice(0, 4)}
+          {hit ? '💥' : type.slice(0, 4)}
         </span>
       </div>
     );
@@ -251,6 +267,7 @@ const ObstacleComp = React.memo(function ObstacleComp({
         objectFit: 'contain',
         imageRendering: 'pixelated',
         ...gasStyle,
+        ...hitStyle,
       }}
     />
   );
@@ -404,6 +421,14 @@ const MotoTouchControls = React.memo(function MotoTouchControls({
     setTimeout(() => { keysRef.current[key] = false; }, 120);
   };
 
+  // LEFT/RIGHT precisam ficar pressionados (não single press)
+  const hold = (key: string) => {
+    keysRef.current[key] = true;
+  };
+  const release = (key: string) => {
+    keysRef.current[key] = false;
+  };
+
   const btnStyle = (size: number): React.CSSProperties => ({
     width: size, height: size,
     borderRadius: '50%',
@@ -420,21 +445,40 @@ const MotoTouchControls = React.memo(function MotoTouchControls({
 
   return (
     <>
-      {/* D-Pad: ↑ ↓ (esquerda) */}
+      {/* D-Pad: ← ↑ ↓ → (esquerda) */}
       <div style={{
         position: 'absolute', bottom: 20, left: 16, zIndex: 9999,
-        display: 'flex', flexDirection: 'column', gap: 8,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
       }}>
+        {/* UP */}
         <div
-          style={{ ...btnStyle(50), background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
+          style={{ ...btnStyle(44), background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
           onTouchStart={() => press('arrowup')}
           onMouseDown={() => press('arrowup')}
         >▲</div>
-        <div
-          style={{ ...btnStyle(50), background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
-          onTouchStart={() => press('arrowdown')}
-          onMouseDown={() => press('arrowdown')}
-        >▼</div>
+
+        {/* LEFT / DOWN / RIGHT */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          <div
+            style={{ ...btnStyle(44), background: 'rgba(230,126,34,0.2)', borderColor: 'rgba(230,126,34,0.4)' }}
+            onTouchStart={() => hold('arrowleft')}
+            onTouchEnd={() => release('arrowleft')}
+            onMouseDown={() => hold('arrowleft')}
+            onMouseUp={() => release('arrowleft')}
+          >◀</div>
+          <div
+            style={{ ...btnStyle(44), background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}
+            onTouchStart={() => press('arrowdown')}
+            onMouseDown={() => press('arrowdown')}
+          >▼</div>
+          <div
+            style={{ ...btnStyle(44), background: 'rgba(46,204,113,0.2)', borderColor: 'rgba(46,204,113,0.4)' }}
+            onTouchStart={() => hold('arrowright')}
+            onTouchEnd={() => release('arrowright')}
+            onMouseDown={() => hold('arrowright')}
+            onMouseUp={() => release('arrowright')}
+          >▶</div>
+        </div>
       </div>
 
       {/* Ações: Z pular, X soco (direita) */}
@@ -463,7 +507,7 @@ const MotoTouchControls = React.memo(function MotoTouchControls({
 export default function MotoRenderer({
   moto, obstacles, items, particles, texts, keysRef,
   frame, score, act, shake, laneY, jumpZ, motoX, lanePositions,
-  muted, onToggleMute, phaseComplete = false,
+  muted, onToggleMute, phaseComplete = false, cameraX = 0,
 }: MotoRendererProps) {
   const shakeX = shake > 0 ? rng(-shake, shake) : 0;
   const shakeY = shake > 0 ? rng(-shake * 0.5, shake * 0.5) : 0;
@@ -474,14 +518,13 @@ export default function MotoRenderer({
         position: 'absolute', inset: -4,
         transform: `translate3d(${shakeX}px, ${shakeY}px, 0)`,
       }}>
-        {/* ── Background scrolling ── */}
+        {/* ── Background scrolling (usa cameraX) ── */}
         <ScrollingBackground
-          frame={frame}
-          speed={moto.speed}
+          cameraX={cameraX}
           phaseComplete={phaseComplete}
         />
 
-        {/* ── Faixas visuais (indicadores sutis) ── */}
+        {/* ── Faixas visuais ── */}
         {lanePositions.map((ly, i) => (
           <div key={`lane${i}`} style={{
             position: 'absolute', left: 0, right: 0,
@@ -496,10 +539,12 @@ export default function MotoRenderer({
         {/* ── Faróis ── */}
         <HeadlightEffect motoX={motoX} laneY={laneY} act={act} />
 
-        {/* ── Obstáculos ── */}
+        {/* ── Obstáculos (posição = worldX - cameraX) ── */}
         {obstacles.map(obs => {
-          if (obs.x < -80 || obs.x > BASE_W + 80) return null;
-          if (obs.hit && obs.type !== 'gas') return null;
+          // ✅ Converter posição do mundo pra posição na tela
+          const screenX = obs.x - cameraX;
+          if (screenX < -120 || screenX > BASE_W + 120) return null;
+          if (obs.hit && obs.type !== 'gas' && obs.type !== 'zumbi_corredor') return null;
           const obsY = obs.type === 'barreira'
             ? lanePositions[1]
             : lanePositions[obs.lane];
@@ -508,25 +553,26 @@ export default function MotoRenderer({
           return (
             <div key={obs.id} style={{
               position: 'absolute',
-              left: obs.x - dim.width / 2,
+              left: screenX - dim.width / 2,
               top: obsY - dim.height + 10,
               zIndex: 6 + Math.floor(obsY),
             }}>
-              <ObstacleComp type={obs.type} frame={frame} />
+              <ObstacleComp type={obs.type} frame={frame} hit={!!obs.hit} />
             </div>
           );
         })}
 
-        {/* ── Itens ── */}
+        {/* ── Itens (posição = worldX - cameraX) ── */}
         {items.map(item => {
-          if (item.x < -40 || item.x > BASE_W + 40) return null;
+          const screenX = item.x - cameraX;
+          if (screenX < -40 || screenX > BASE_W + 40) return null;
           if (item.collected) return null;
           const dim = ITEM_SIZES[item.type] ?? { width: 22, height: 22 };
           const itemY = lanePositions[item.lane];
           return (
             <div key={item.id} style={{
               position: 'absolute',
-              left: item.x - dim.width / 2,
+              left: screenX - dim.width / 2,
               top: itemY - dim.height - 5,
               zIndex: 7 + Math.floor(itemY),
             }}>

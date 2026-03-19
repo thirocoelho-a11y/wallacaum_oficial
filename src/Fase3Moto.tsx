@@ -12,7 +12,7 @@
 //  Controles: ↑↓ faixa, Z pular, X soco lateral
 // ═══════════════════════════════════════════════════════
 import { useState, useCallback } from 'react';
-import { useMotorRunner } from './useMotorRunner';
+import useMotorRunner from './useMotorRunner';
 import MotoRenderer from './MotoRenderer';
 import { MOTO_TOTAL_DURATION } from './constants';
 
@@ -159,6 +159,7 @@ export default function Fase3Moto({
       jumpZ={engine.jumpZ}
       motoX={engine.motoX}
       lanePositions={engine.lanePositions}
+      cameraX={engine.cameraX}
       muted={muted}
       onToggleMute={onToggleMute}
     />
