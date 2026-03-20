@@ -54,20 +54,19 @@ interface MusicConfig {
 const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
   title:          { track: 'title',      volume: 0.4 },
   fase1:          { track: 'fase1',      volume: 0.3 },
-  trans_1to2:     { track: 'transition', volume: 0.3 },
+  trans_1to2:     { track: 'victory',    volume: 0.4 },
   fase2:          { track: 'fase2',      volume: 0.4 },
-  trans_2to3:     { track: 'transition', volume: 0.3 },
+  trans_2to3:     { track: 'victory',    volume: 0.4 },
   fase3:          { track: 'fase3',      volume: 0.5 },
-  trans_3tomoto:  { track: 'transition', volume: 0.3 },
+  trans_3tomoto:  { track: 'victory',    volume: 0.4 },
   fase3moto:      { track: 'fase3moto',  volume: 0.6 },
-  trans_mototo4:  { track: 'transition', volume: 0.3 },
+  trans_mototo4:  { track: 'victory',    volume: 0.4 },
   // fase4:       { track: 'fase4',      volume: 0.5 },
-  // trans_4to5:  { track: 'transition', volume: 0.3 },
+  // trans_4to5:  { track: 'victory',    volume: 0.4 },
   // fase5:       { track: 'fase5',      volume: 0.5 },
   gameover:       { track: 'gameover',   volume: 0.5, fadeOut: true },
   victory:        { track: 'victory',    volume: 0.4 },
 };
-
 export default function App() {
   // ── Unlock de áudio (necessário pro Vercel/produção) ──
   const [unlocked, setUnlocked] = useState(true);

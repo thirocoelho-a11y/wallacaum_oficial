@@ -96,7 +96,8 @@ export function updateZumbiAI(
     e.atkCd = 90; // Ataca a cada 1.5s (lento)
     e.punchTimer = 15;
     const meleeDmg = e.type === 'zumbi_turbo' ? 8 : 5;
-    p.hp -= meleeDmg; p.hurt = true; p.hurtTimer = 15; p.invincible = 30;
+    p.hp -= meleeDmg; p.hurt = true; p.hurtTimer = 20; p.invincible = 45;
+    p.vx = e.x > p.x ? -4 : 4;  // ✅ Knockback
     p.combo = 0; p.comboTimer = 0;
     spawnParticles(particles, 4, p.x, p.y - 30 - p.z, '#88ff88', 'hit', 3, 12, 4);
     texts.push({ id: uid(), text: `-${meleeDmg}`, x: p.x, y: p.y - 40 - p.z, color: '#88ff88', size: 14, t: f });
@@ -173,7 +174,7 @@ export function updateSukaMK2AI(
       e.atkCd = 100; // Muito mais lenta
       e.punchTimer = 20;
       const dmg = Math.floor(SUKA_MK2_SWORD_DAMAGE * 0.7); // Dano reduzido
-      p.hp -= dmg; p.hurt = true; p.hurtTimer = 15; p.invincible = 30;
+      p.hp -= dmg; p.hurt = true; p.hurtTimer = 20; p.invincible = 45;
       p.vx = (dx > 0 ? -1 : 1) * 8;
       p.combo = 0; p.comboTimer = 0;
       spawnParticles(particles, 5, p.x, p.y - 30, '#9b59b6', 'hit', 4, 14, 5);

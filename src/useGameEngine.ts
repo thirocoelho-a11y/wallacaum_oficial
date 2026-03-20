@@ -282,6 +282,32 @@ export function useGameEngine(cfg: EnginePhaseConfig) {
       }
 
       // ══════════════════════════════════════════════
+      //  BOIDS: Separação entre inimigos (anti-overlap)
+      //  ✅ Impede que inimigos se empilhem no mesmo pixel
+      // ══════════════════════════════════════════════
+      for (let i = 0; i < enemies.length; i++) {
+        for (let j = i + 1; j < enemies.length; j++) {
+          const e1 = enemies[i], e2 = enemies[j];
+          const bdx = e1.x - e2.x, bdy = e1.y - e2.y;
+          const bDist = Math.sqrt(bdx * bdx + bdy * bdy);
+          if (bDist === 0) {
+            // Salvaguarda: spawn no mesmo pixel exato
+            e1.x += 1; e2.x -= 1;
+            e1.y -= 0.5; e2.y += 0.5;
+          } else if (bDist < 25) {
+            const push = (25 - bDist) * 0.3 / bDist;
+            e1.x += bdx * push; e1.y += bdy * push;
+            e2.x -= bdx * push; e2.y -= bdy * push;
+          }
+        }
+      }
+      // Clamp pós-boids (não empurrar fora do cenário)
+      for (const e of enemies) {
+        e.x = clamp(e.x, 10, WORLD_W - 10);
+        e.y = clamp(e.y, FLOOR_MIN, FLOOR_MAX);
+      }
+
+      // ══════════════════════════════════════════════
       //  CHUVA + RELÂMPAGOS (Fase 5 estágio 3)
       // ══════════════════════════════════════════════
       if (cfg.hasRain) {

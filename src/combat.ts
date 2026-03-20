@@ -53,8 +53,8 @@ export function checkPlayerHits(
   if (p.attacking && pf2 >= PUNCH_ACTIVE[0] && pf2 <= PUNCH_ACTIVE[1]
     && hx < PUNCH_RANGE && hy < PUNCH_DEPTH && fac && !e.hitThisSwing) {
     e.hitThisSwing = true; playSFX('hit');
-    e.hp -= PUNCH_DAMAGE; e.hurt = true; e.hurtTimer = 10;
-    e.kbx = p.dir === 'right' ? 7 : -7; e.kby = (e.y - p.y) * 0.05;
+    e.hp -= PUNCH_DAMAGE; e.hurt = true; e.hurtTimer = 20;
+    e.kbx = p.dir === 'right' ? 10 : -10; e.kby = (e.y - p.y) * 0.05;
     p.combo++; p.comboTimer = COMBO_TIMEOUT; p.hitstop = HITSTOP_FRAMES;
     spawnParticles(particles, 5, (p.x + e.x) / 2, e.y - 40, '#f1c40f', 'spark', 4, 12, 4);
     texts.push({ id: uid(), text: `-${PUNCH_DAMAGE}`, x: e.x, y: e.y - 50, color: '#f1c40f', size: 14, t: f });
@@ -65,8 +65,8 @@ export function checkPlayerHits(
     && hx < BUFA_RANGE && hy < BUFA_DEPTH && !e.hitThisSwing) {
     e.hitThisSwing = true;
     const dmg = isBossType(e.type) ? BUFA_DAMAGE_BOSS : BUFA_DAMAGE_NORMAL;
-    e.hp -= dmg; e.hurt = true; e.hurtTimer = 18;
-    e.kbx = (e.x - p.x) > 0 ? 14 : -14; e.kby = (e.y - p.y) * 0.08;
+    e.hp -= dmg; e.hurt = true; e.hurtTimer = 25;
+    e.kbx = (e.x - p.x) > 0 ? 18 : -18; e.kby = (e.y - p.y) * 0.08;
     p.combo++; p.comboTimer = COMBO_TIMEOUT; p.hitstop = HITSTOP_FRAMES + 2;
     spawnParticles(particles, 8, (p.x + e.x) / 2, e.y - 40, '#2ecc71', 'spark', 6, 16, 5);
     spawnParticles(particles, 3, (p.x + e.x) / 2, e.y - 40, '#2ecc71', 'ring', 2, 20, 8);

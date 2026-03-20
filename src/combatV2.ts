@@ -194,8 +194,8 @@ export function checkPlayerHitsV2(
       texts.push({ id: uid(), text: `-${dmg}`, x: e.x, y: e.y - 50, color: '#f1c40f', size: 14, t: f });
     }
 
-    e.hp -= dmg; e.hurt = true; e.hurtTimer = 10 + stunBonus;
-    e.kbx = p.dir === 'right' ? 7 : -7; e.kby = (e.y - p.y) * 0.05;
+    e.hp -= dmg; e.hurt = true; e.hurtTimer = 20 + stunBonus;
+    e.kbx = p.dir === 'right' ? 10 : -10; e.kby = (e.y - p.y) * 0.05;
     if (stunBonus > 0) e.atkCd = Math.max(e.atkCd, stunBonus);
     p.combo++; p.comboTimer = COMBO_TIMEOUT; p.hitstop = HITSTOP_FRAMES;
     spawnParticles(particles, 5, (p.x + e.x) / 2, e.y - 40, particleColor, 'spark', 4, 12, 4);
@@ -270,7 +270,7 @@ export function checkPlayerHitsV2(
       texts.push({ id: uid(), text: `-${dmg}`, x: e.x, y: e.y - 50, color: '#2ecc71', size: 18, t: f });
     }
 
-    e.hp -= dmg; e.hurt = true; e.hurtTimer = 18;
+    e.hp -= dmg; e.hurt = true; e.hurtTimer = 25;
     e.kbx = (e.x - p.x) > 0 ? kbForce : -kbForce;
     e.kby = (e.y - p.y) * 0.08;
     p.combo++; p.comboTimer = COMBO_TIMEOUT;

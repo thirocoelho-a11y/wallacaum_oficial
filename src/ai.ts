@@ -29,7 +29,8 @@ export function updateBasicEnemyAI(
     const cd = (e.type === 'fast' || e.type === 'cientista') ? 30 : 50;
     e.atkCd = cd; e.punchTimer = 15;
     const dmg = e.type === 'seguranca' ? 12 : (e.type === 'fast' || e.type === 'cientista') ? 8 : 10;
-    p.hp -= dmg; p.hurt = true; p.hurtTimer = 15; p.invincible = 30;
+    p.hp -= dmg; p.hurt = true; p.hurtTimer = 20; p.invincible = 45;
+    p.vx = e.x > p.x ? -5 : 5;  // ✅ Knockback do player
     p.combo = 0; p.comboTimer = 0;
     spawnParticles(particles, 4, p.x, p.y - 30 - p.z, '#ff4444', 'hit', 3, 12, 4);
     texts.push({ id: uid(), text: `-${dmg}`, x: p.x, y: p.y - 40 - p.z, color: '#ff4444', size: 16, t: f });
@@ -70,7 +71,7 @@ export function updateSukaAI(
     e.stateTimer = 0; // Reset do wind-up do grito
     e.atkCd = 50; // Cooldown curto — pode socar de novo rápido
     e.punchTimer = 18;
-    p.hp -= 15; p.hurt = true; p.hurtTimer = 15; p.invincible = 30;
+    p.hp -= 15; p.hurt = true; p.hurtTimer = 20; p.invincible = 45;
     p.vx = (dx > 0 ? -1 : 1) * 8;
     p.combo = 0; p.comboTimer = 0;
     spawnParticles(particles, 5, p.x, p.y - 30 - p.z, '#9b59b6', 'hit', 4, 14, 5);
@@ -205,7 +206,8 @@ export function updateFurioAI(
     if (e.atkCd > 0) e.atkCd--;
     if (hx < 75 && hy < 25 && e.atkCd <= 0 && p.invincible <= 0 && p.z < 10) {
       e.atkCd = 45; e.punchTimer = 15;
-      p.hp -= 12; p.hurt = true; p.hurtTimer = 15; p.invincible = 30;
+      p.hp -= 12; p.hurt = true; p.hurtTimer = 20; p.invincible = 45;
+      p.vx = e.x > p.x ? -5 : 5;  // ✅ Knockback
       p.combo = 0; p.comboTimer = 0;
       spawnParticles(particles, 5, p.x, p.y - 30, '#ff4444', 'hit', 3, 14, 5);
       texts.push({ id: uid(), text: '-12', x: p.x, y: p.y - 40, color: '#ff4444', size: 16, t: f });

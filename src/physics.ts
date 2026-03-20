@@ -18,6 +18,11 @@ export function updatePlayerMovement(p: Player, k: Record<string, boolean>, part
   if (k['arrowdown'] || k['s']) iy += 1;
   if (ix !== 0 && iy !== 0) { ix *= 0.707; iy *= 0.707; }
 
+  // ✅ FIX: Durante knockback (primeiros frames de hurt), controle reduzido
+  if (p.hurt && p.hurtTimer > 10) {
+    ix *= 0.15; iy *= 0.15;
+  }
+
   if (ix !== 0) {
     p.vx += ix * PLAYER_ACCEL;
     p.vx = clamp(p.vx, -PLAYER_MAX_SPEED, PLAYER_MAX_SPEED);
