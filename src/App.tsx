@@ -67,17 +67,19 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [hp, setHp] = useState(MAX_HP);
   const [muted, setMuted] = useState(false);
-  const [viewScale, setViewScale] = useState(1);
+  const [scale, setScale] = useState({ x: 1, y: 1 });
 
+  // ── Escala responsiva ──
   // ── Escala responsiva ──
   useEffect(() => {
     const calc = () => {
-      const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
-      setViewScale(s);
+      setScale({
+        x: window.innerWidth / BASE_W,
+        y: window.innerHeight / BASE_H,
+      });
     };
     calc();
-    window.addEventListener('resize', calc);
-    const oc = () => setTimeout(calc, 300);
+    window.addEventListener('resize', calc);  const oc = () => setTimeout(calc, 300);
     window.addEventListener('orientationchange', oc);
     return () => {
       window.removeEventListener('resize', calc);
@@ -223,7 +225,7 @@ export default function App() {
       {unlocked && (
         <div style={{
           width: BASE_W, height: BASE_H,
-          transform: `scale(${viewScale})`, transformOrigin: 'center center',
+          transform: `scale(${scale.x}, ${scale.y})`, transformOrigin: 'center center',
           position: 'relative', overflow: 'hidden', imageRendering: 'pixelated',
         }}>
 
