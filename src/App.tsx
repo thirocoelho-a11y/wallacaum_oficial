@@ -1,10 +1,12 @@
 // ═══════════════════════════════════════════════════════
 //  App.tsx — Roteador de Fases + Música por Fase + Telas
 //
-//  Fluxo: unlock → título → fase1 → trans1→2 → fase2 →
-//         trans2→3 → fase3 → trans3→moto → fase3moto →
-//         trans_mototo4 → ...
+//  Fluxo: unlock → título → INTRO (comic) → fase1 →
+//         trans1→2 (comic) → fase2 → trans2→3 (comic) →
+//         fase3 → trans3→moto (comic) → fase3moto →
+//         trans_mototo4 (comic) → ...
 //
+//  ✅ INTEGRADO: Cutscenes em quadrinhos (ComicReader)
 //  ✅ INTEGRADO: Fase 3½ (Moto)
 //  ✅ INTEGRADO: Música diferente por fase (Jukebox)
 //  ✅ FIX: Tela de unlock para autoplay no Vercel
@@ -15,7 +17,8 @@ import { setSFXMute } from './sfx';
 import { BASE_W, BASE_H, MAX_HP } from './constants';
 import { GAME_CSS } from './gameStyles';
 import {
-  TitleScreen, PhaseTransitionScreen, Phase2to3TransitionScreen,
+  TitleScreen, IntroScreen,
+  PhaseTransitionScreen, Phase2to3TransitionScreen,
   Phase3toMotoTransitionScreen, MotoToPhase4TransitionScreen,
   GameOverScreen, VictoryScreen,
 } from './screens';
@@ -28,6 +31,7 @@ import Fase3Moto from './Fase3Moto';
 
 type Screen =
   | 'title'
+  | 'intro'             // ✅ NOVO: Prólogo em quadrinhos
   | 'fase1'
   | 'trans_1to2'
   | 'fase2'
@@ -53,6 +57,7 @@ interface MusicConfig {
 
 const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
   title:          { track: 'title',      volume: 0.4 },
+  intro:          { track: 'title',      volume: 0.3 },  // ✅ Intro usa música do título
   fase1:          { track: 'fase1',      volume: 0.3 },
   trans_1to2:     { track: 'victory',    volume: 0.4 },
   fase2:          { track: 'fase2',      volume: 0.4 },
@@ -67,9 +72,10 @@ const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
   gameover:       { track: 'gameover',   volume: 0.5, fadeOut: true },
   victory:        { track: 'victory',    volume: 0.4 },
 };
+
 export default function App() {
   // ── Unlock de áudio (necessário pro Vercel/produção) ──
-  const [unlocked, setUnlocked] = useState(true);
+  const [unlocked, setUnlocked] = useState(false);
 
   const [screen, setScreen] = useState<Screen>('title');
   const [score, setScore] = useState(0);
@@ -103,16 +109,12 @@ export default function App() {
   }, []);
 
   // Reage a troca de screen → troca de música
-  // Só toca se o áudio foi desbloqueado pelo clique do usuário
-  // Pula a primeira vez no title (o handleUnlock já tocou)
   const firstUnlockRef = useRef(true);
 
   useEffect(() => {
     const jb = jukeboxRef.current;
     if (!jb || !unlocked) return;
 
-    // O handleUnlock já tocou a música do title direto no handler.
-    // Pula essa execução pra não dar play duplicado.
     if (firstUnlockRef.current && screen === 'title') {
       firstUnlockRef.current = false;
       return;
@@ -144,21 +146,15 @@ export default function App() {
   const toggleMute = useCallback(() => setMuted(m => !m), []);
 
   // ═══════════════════════════════════════════════════
-  //  Unlock handler — desbloqueia áudio e vai pro título
-  //
-  //  IMPORTANTE: No celular, audio.play() SÓ funciona
-  //  se chamado DENTRO do handler de toque/clique.
-  //  Por isso tocamos a música direto aqui, não no useEffect.
+  //  Unlock handler
   // ═══════════════════════════════════════════════════
   const handleUnlock = useCallback(() => {
-    // 1. Desbloqueia o AudioContext do sfx (se estava suspenso)
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       if (ctx.state === 'suspended') ctx.resume();
       ctx.close();
     } catch (_) { /* ignora */ }
 
-    // 2. Toca a música do título DIRETO no handler (exigência mobile)
     const jb = jukeboxRef.current;
     if (jb) {
       const cfg = SCREEN_MUSIC['title'];
@@ -166,7 +162,6 @@ export default function App() {
       jb.play(cfg.track);
     }
 
-    // 3. Atualiza estado
     setUnlocked(true);
     setScreen('title');
   }, []);
@@ -175,10 +170,16 @@ export default function App() {
   //  Navegação entre fases
   // ═══════════════════════════════════════════════════
 
-  const startGame = useCallback(() => {
-    setScore(0); setHp(MAX_HP); setScreen('fase1');
+  // ✅ Title → Intro (comic) → Fase 1
+  const startIntro = useCallback(() => {
+    setScore(0); setHp(MAX_HP); setScreen('intro');
   }, []);
 
+  const startGame = useCallback(() => {
+    setScreen('fase1');
+  }, []);
+
+  // Fase 1 → transição comic → Fase 2
   const onFase1Complete = useCallback((newScore: number, newHp: number) => {
     setScore(newScore); setHp(newHp); setScreen('trans_1to2');
   }, []);
@@ -187,6 +188,7 @@ export default function App() {
     setScreen('fase2');
   }, []);
 
+  // Fase 2 → transição comic → Fase 3
   const onFase2Complete = useCallback((newScore: number, newHp: number) => {
     setScore(newScore); setHp(newHp); setScreen('trans_2to3');
   }, []);
@@ -195,6 +197,7 @@ export default function App() {
     setScreen('fase3');
   }, []);
 
+  // Fase 3 → transição comic → Moto
   const onFase3Complete = useCallback((newScore: number, newHp: number) => {
     setScore(newScore); setHp(newHp); setScreen('trans_3tomoto');
   }, []);
@@ -203,11 +206,13 @@ export default function App() {
     setScreen('fase3moto');
   }, []);
 
+  // Moto → transição comic → Fase 4
   const onMotoComplete = useCallback((newScore: number, newHp: number) => {
     setScore(newScore); setHp(newHp); setScreen('trans_mototo4');
   }, []);
 
   const startFase4 = useCallback(() => {
+    // TODO: setScreen('fase4'); quando Fase 4 existir
     setScreen('victory');
   }, []);
 
@@ -235,11 +240,7 @@ export default function App() {
     >
       <style>{GAME_CSS}</style>
 
-      {/* ═══════════════════════════════════════════════
-          TELA DE UNLOCK — Aparece antes de tudo.
-          O clique do usuário desbloqueia o autoplay
-          de áudio nos navegadores (Chrome, Safari, etc).
-          ═══════════════════════════════════════════════ */}
+      {/* ── TELA DE UNLOCK ── */}
       {!unlocked && (
         <div
           onClick={handleUnlock}
@@ -252,54 +253,31 @@ export default function App() {
             cursor: 'pointer',
           }}
         >
-          {/* Logo */}
           <div style={{
             fontSize: 32, color: '#f1c40f', fontWeight: 900,
             fontFamily: '"Press Start 2P", monospace',
             textShadow: '3px 3px 0 #c0392b, 6px 6px 0 rgba(0,0,0,0.5)',
-            letterSpacing: 3,
-            animation: 'pulse 1.5s infinite alternate',
-          }}>
-            WALLAÇAUM
-          </div>
-
-          {/* Subtítulo */}
+            letterSpacing: 3, animation: 'pulse 1.5s infinite alternate',
+          }}>WALLAÇAUM</div>
           <div style={{
             fontSize: 8, color: '#e74c3c', marginTop: 8,
-            letterSpacing: 3, fontWeight: 700,
-            textShadow: '1px 1px 0 #000',
-          }}>
-            A CONSPIRAÇÃO DO SUPLEMENTO
-          </div>
-
-          {/* Separador */}
+            letterSpacing: 3, fontWeight: 700, textShadow: '1px 1px 0 #000',
+          }}>A CONSPIRAÇÃO DO SUPLEMENTO</div>
           <div style={{
             width: 200, height: 2, margin: '24px 0',
             background: 'linear-gradient(90deg, transparent, #f1c40f44, transparent)',
           }} />
-
-          {/* Instrução de toque */}
           <div style={{
             fontSize: 11, color: '#fff', fontWeight: 900,
-            letterSpacing: 2,
-            animation: 'pulse 1s infinite alternate',
-          }}>
-            🎮 TOQUE PARA COMEÇAR
-          </div>
-
-          {/* Dica mobile */}
-          <div style={{
-            fontSize: 7, color: '#666', marginTop: 12,
-            letterSpacing: 1,
-          }}>
+            letterSpacing: 2, animation: 'pulse 1s infinite alternate',
+          }}>🎮 TOQUE PARA COMEÇAR</div>
+          <div style={{ fontSize: 7, color: '#666', marginTop: 12, letterSpacing: 1 }}>
             Clique ou toque na tela
           </div>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════
-          VIEWPORT DO JOGO (só renderiza após unlock)
-          ═══════════════════════════════════════════════ */}
+      {/* ── VIEWPORT DO JOGO ── */}
       {unlocked && (
         <div style={{
           width: BASE_W, height: BASE_H,
@@ -307,11 +285,18 @@ export default function App() {
           position: 'relative', overflow: 'hidden', imageRendering: 'pixelated',
         }}>
 
+          {/* ── Tela Título ── */}
+          {screen === 'title' && <TitleScreen onStart={startIntro} />}
+
+          {/* ── ✅ Intro (comic prólogo) ── */}
+          {screen === 'intro' && <IntroScreen onContinue={startGame} />}
+
+          {/* ── Fases jogáveis ── */}
           {screen === 'fase1' && (
             <Fase1
               initialScore={0} initialHp={MAX_HP}
               muted={muted} onToggleMute={toggleMute}
-              onComplete={onFase1Complete} onGameOver={onGameOver} onRestart={startGame}
+              onComplete={onFase1Complete} onGameOver={onGameOver} onRestart={startIntro}
             />
           )}
 
@@ -319,7 +304,7 @@ export default function App() {
             <Fase2
               initialScore={score} initialHp={hp}
               muted={muted} onToggleMute={toggleMute}
-              onVictory={onFase2Complete} onGameOver={onGameOver} onRestart={startGame}
+              onVictory={onFase2Complete} onGameOver={onGameOver} onRestart={startIntro}
             />
           )}
 
@@ -327,7 +312,7 @@ export default function App() {
             <Fase3
               initialScore={score} initialHp={hp}
               muted={muted} onToggleMute={toggleMute}
-              onComplete={onFase3Complete} onGameOver={onGameOver} onRestart={startGame}
+              onComplete={onFase3Complete} onGameOver={onGameOver} onRestart={startIntro}
             />
           )}
 
@@ -335,30 +320,19 @@ export default function App() {
             <Fase3Moto
               initialScore={score} initialHp={hp}
               muted={muted} onToggleMute={toggleMute}
-              onComplete={onMotoComplete} onGameOver={onGameOver} onRestart={startGame}
+              onComplete={onMotoComplete} onGameOver={onGameOver} onRestart={startIntro}
             />
           )}
 
-          {screen === 'title' && <TitleScreen onStart={startGame} />}
+          {/* ── Transições (comics) — sem prop score ── */}
+          {screen === 'trans_1to2' && <PhaseTransitionScreen onContinue={startFase2} />}
+          {screen === 'trans_2to3' && <Phase2to3TransitionScreen onContinue={startFase3} />}
+          {screen === 'trans_3tomoto' && <Phase3toMotoTransitionScreen onContinue={startMoto} />}
+          {screen === 'trans_mototo4' && <MotoToPhase4TransitionScreen onContinue={startFase4} />}
 
-          {screen === 'trans_1to2' && (
-            <PhaseTransitionScreen score={score} onContinue={startFase2} />
-          )}
-
-          {screen === 'trans_2to3' && (
-            <Phase2to3TransitionScreen score={score} onContinue={startFase3} />
-          )}
-
-          {screen === 'trans_3tomoto' && (
-            <Phase3toMotoTransitionScreen score={score} onContinue={startMoto} />
-          )}
-
-          {screen === 'trans_mototo4' && (
-            <MotoToPhase4TransitionScreen score={score} onContinue={startFase4} />
-          )}
-
-          {screen === 'gameover' && <GameOverScreen score={score} onRetry={startGame} />}
-          {screen === 'victory' && <VictoryScreen score={score} onRetry={startGame} />}
+          {/* ── Game Over / Vitória (mantém score) ── */}
+          {screen === 'gameover' && <GameOverScreen score={score} onRetry={startIntro} />}
+          {screen === 'victory' && <VictoryScreen score={score} onRetry={startIntro} />}
 
         </div>
       )}
