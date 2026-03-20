@@ -25,6 +25,7 @@ import Fase1 from './Fase1';
 import Fase2 from './Fase2';
 import Fase3 from './Fase3';
 import Fase3Moto from './Fase3Moto';
+import Fase4 from './Fase4';
 
 type Screen =
   | 'title'
@@ -37,6 +38,7 @@ type Screen =
   | 'trans_3tomoto'
   | 'fase3moto'
   | 'trans_mototo4'
+  | 'fase4'
   | 'gameover'
   | 'victory';
 
@@ -57,6 +59,7 @@ const SCREEN_MUSIC: Record<Screen, MusicConfig> = {
   trans_3tomoto:  { track: 'victory',    volume: 0.4 },
   fase3moto:      { track: 'fase3moto',  volume: 0.6 },
   trans_mototo4:  { track: 'victory',    volume: 0.4 },
+  fase4:          { track: 'fase4',      volume: 0.5 },
   gameover:       { track: 'gameover',   volume: 0.5, fadeOut: true },
   victory:        { track: 'victory',    volume: 0.4 },
 };
@@ -69,8 +72,7 @@ export default function App() {
   const [muted, setMuted] = useState(false);
   const [scale, setScale] = useState({ x: 1, y: 1 });
 
-  // ── Escala responsiva ──
-  // ── Escala responsiva ──
+  // ── Escala responsiva (fullscreen) ──
   useEffect(() => {
     const calc = () => {
       setScale({
@@ -79,7 +81,8 @@ export default function App() {
       });
     };
     calc();
-    window.addEventListener('resize', calc);  const oc = () => setTimeout(calc, 300);
+    window.addEventListener('resize', calc);
+    const oc = () => setTimeout(calc, 300);
     window.addEventListener('orientationchange', oc);
     return () => {
       window.removeEventListener('resize', calc);
@@ -179,7 +182,12 @@ export default function App() {
   const onMotoComplete = useCallback((s: number, h: number) => {
     setScore(s); setHp(h); setScreen('trans_mototo4');
   }, []);
-  const startFase4 = useCallback(() => setScreen('victory'), []);
+  const startFase4 = useCallback(() => setScreen('fase4'), []);
+
+  // Fase 4 → Vitória (placeholder até Fase 5 existir)
+  const onFase4Complete = useCallback((s: number, h: number) => {
+    setScore(s); setHp(h); setScreen('victory');
+  }, []);
 
   // Game Over / Vitória
   const onGameOver = useCallback((s: number) => {
@@ -251,6 +259,10 @@ export default function App() {
           {screen === 'fase3moto' && (
             <Fase3Moto initialScore={score} initialHp={hp} muted={muted} onToggleMute={toggleMute}
               onComplete={onMotoComplete} onGameOver={onGameOver} onRestart={startIntro} />
+          )}
+          {screen === 'fase4' && (
+            <Fase4 initialScore={score} initialHp={hp} muted={muted} onToggleMute={toggleMute}
+              onComplete={onFase4Complete} onGameOver={onGameOver} onRestart={startIntro} />
           )}
 
           {/* ✅ Transições Comic (sem score) */}
